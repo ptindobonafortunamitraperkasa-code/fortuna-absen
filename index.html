@@ -165,16 +165,34 @@ return Array.from(detection.descriptor);
 }
 
 async function registerFace(){
-const desc = await getFaceDescriptor();
-if(!desc) return alert("Wajah tidak terdeteksi");
+  try{
+    alert("Mulai daftar wajah");
 
-await db.from("employees")
-.update({face_descriptor: desc})
-.eq("id", currentUser.id);
+    const desc = await getFaceDescriptor();
 
-alert("Wajah berhasil didaftarkan");
+    if(!desc){
+      alert("Wajah tidak terdeteksi");
+      return;
+    }
+
+    const { error } = await db
+      .from("employees")
+      .update({ face_descriptor: desc })
+      .eq("id", currentUser.id);
+
+    if(error){
+      console.error(error);
+      alert("Gagal simpan wajah");
+      return;
+    }
+
+    currentUser.face_descriptor = desc;
+    alert("Wajah berhasil didaftarkan");
+  }catch(err){
+    console.error(err);
+    alert("Error daftar wajah");
+  }
 }
-
 function distance(a,b){
 let sum=0;
 for(let i=0;i<a.length;i++){
@@ -203,31 +221,52 @@ p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),
 }
 
 async function checkIn(){
-const ok = await verifyFace();
-if(!ok) return alert("Wajah tidak cocok");
+  try{
+    alert("Mulai absen");
 
-const loc=await getLocation();
+    const ok = await verifyFace();
 
-const {data:exist}=await db.from("attendances")
-.select("*")
-.eq("employee_id",currentUser.id)
-.eq("date",today())
-.maybeSingle();
+    if(!ok){
+      alert("Wajah tidak cocok");
+      return;
+    }
 
-if(exist) return alert("Sudah absen masuk");
+    const loc = await getLocation();
 
-await db.from("attendances").insert({
-employee_id: currentUser.id,
-employee_name: currentUser.name,
-branch: currentUser.branch,
-date: today(),
-check_in: new Date().toLocaleTimeString("id-ID"),
-latitude: loc.lat,
-longitude: loc.lng,
-face_verified: true
-});
+    const { data: exist } = await db
+      .from("attendances")
+      .select("*")
+      .eq("employee_id", currentUser.id)
+      .eq("date", today())
+      .maybeSingle();
 
-alert("Absen masuk berhasil");
+    if(exist){
+      alert("Sudah absen hari ini");
+      return;
+    }
+
+    const { error } = await db.from("attendances").insert({
+      employee_id: currentUser.id,
+      employee_name: currentUser.name,
+      branch: currentUser.branch,
+      date: today(),
+      check_in: new Date().toLocaleTimeString("id-ID"),
+      latitude: loc.lat,
+      longitude: loc.lng,
+      face_verified: true
+    });
+
+    if(error){
+      console.error(error);
+      alert("Gagal simpan absen");
+      return;
+    }
+
+    alert("Absen berhasil");
+  }catch(err){
+    console.error(err);
+    alert("Error absen");
+  }
 }
 
 async function checkOut(){
