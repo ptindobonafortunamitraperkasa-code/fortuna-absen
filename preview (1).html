@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fortuna Absen</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Arial,sans-serif;background:#f4f7fb;color:#0f172a}
+.hidden{display:none!important}
+button{border:0;border-radius:12px;padding:11px 15px;font-weight:700;cursor:pointer}
+input,select,textarea{border:1px solid #dbe3ef;border-radius:12px;padding:12px;background:#fff;color:#0f172a;margin:5px}
+textarea{font-family:inherit;min-height:44px}
+a{color:#2563eb;text-decoration:none;font-weight:700}
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#eef4ff,#ffffff)}
+.login-card{width:380px;background:#fff;padding:32px;border-radius:28px;box-shadow:0 25px 70px #1e293b25;border:1px solid #e5eaf3}
+.logo{font-size:28px;font-weight:900;color:#0f172a}
+.gold{color:#c89b2c}
+.primary{background:#0f172a;color:white}
+.goldbtn{background:#c89b2c;color:white}
+.danger{background:#fee2e2;color:#991b1b}
+.soft{background:#eef2ff;color:#1e3a8a}
+.app{display:flex;min-height:100vh}
+.sidebar{width:260px;background:#fff;border-right:1px solid #e5eaf3;padding:22px;position:fixed;height:100vh}
+.side-title{font-size:22px;font-weight:900;margin-bottom:4px}
+.side-sub{font-size:12px;color:#64748b;margin-bottom:25px}
+.nav button{width:100%;text-align:left;margin-bottom:8px;background:transparent;color:#334155}
+.nav button.active,.nav button:hover{background:#eef4ff;color:#1d4ed8}
+.main{margin-left:260px;width:calc(100% - 260px);padding:26px}
+.topbar{background:#fff;border:1px solid #e5eaf3;border-radius:24px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 10px 30px #1e293b0d}
+.card{background:#fff;border:1px solid #e5eaf3;border-radius:24px;padding:20px;margin-bottom:18px;box-shadow:0 10px 30px #1e293b0d}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.stat h1{margin:8px 0;font-size:34px}
+.stat p{color:#64748b;margin:0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:12px;border-bottom:1px solid #edf2f7;text-align:left}
+th{background:#f8fafc;color:#475569}
+video{max-width:100%;border-radius:18px;background:#0f172a}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800}
+.ok{background:#dcfce7;color:#166534}
+.no{background:#fee2e2;color:#991b1b}
+.warn{background:#fef3c7;color:#92400e}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}
+.summary .mini{border:1px solid #e5eaf3;border-radius:18px;padding:14px;background:#f8fafc}
+.summary .mini b{font-size:24px;display:block;margin-top:4px}
+.filterbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
+@media(max-width:800px){
+.sidebar{position:relative;width:100%;height:auto}
+.app{display:block}
+.main{margin-left:0;width:100%;padding:14px}
+.topbar{display:block}
+}
+</style>
+</head>
+
+<body>
+
+<div id="loginBox" class="login">
+  <div class="login-card">
+    <div class="logo">Fortuna <span class="gold">Absen</span></div>
+    <p style="color:#64748b">Smart attendance system with face verification</p>
+    <input id="pin" style="width:100%" placeholder="Masukkan PIN">
+    <button class="primary" style="width:100%;margin-top:10px" onclick="login()">Login</button>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+
+  <aside class="sidebar">
+    <div class="side-title">Fortuna <span class="gold">Absen</span></div>
+    <div class="side-sub">Corporate Attendance System</div>
+
+    <div id="adminNav" class="nav hidden">
+      <button class="active" onclick="showPage('dashboardPage',this)">Dashboard</button>
+      <button onclick="showPage('employeePage',this)">Data Karyawan</button>
+      <button onclick="showPage('attendancePage',this)">Data Absen</button>
+      <button onclick="exportPDF()">Download PDF</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+
+    <div id="employeeNav" class="nav hidden">
+      <button class="active" onclick="showPage('employeeHomePage',this)">Absen Saya</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h2 id="welcome" style="margin:0"></h2>
+        <div style="color:#64748b;font-size:13px">Pantau absensi, wajah, lokasi, dan lembur secara online.</div>
+      </div>
+      <button class="danger" onclick="logout()">Logout</button>
+    </div>
+
+    <section id="dashboardPage">
+      <div class="grid">
+        <div class="card stat"><p>Total Karyawan</p><h1 id="totalEmp">0</h1></div>
+        <div class="card stat"><p>Hadir Hari Ini</p><h1 id="totalToday">0</h1></div>
+        <div class="card stat"><p>Total Data Absen</p><h1 id="totalAbs">0</h1></div>
+      </div>
+    </section>
+
+    <section id="employeePage" class="hidden">
+      <div class="card">
+        <h2>Tambah / Edit Karyawan</h2>
+        <input type="hidden" id="editId">
+        <div class="form-grid">
+          <input id="empName" placeholder="Nama">
+          <input id="empPhone" placeholder="No HP">
+          <input id="empBranch" placeholder="Cabang">
+          <input id="empPosition" placeholder="Jabatan">
+          <input id="empPin" placeholder="PIN">
+          <select id="empRole">
+            <option value="employee">Employee</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button class="goldbtn" onclick="saveEmployee()">Simpan</button>
+        <button class="soft" onclick="resetEmployeeForm()">Reset</button>
+      </div>
+
+      <div class="card">
+        <h2>Data Karyawan</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nama</th><th>HP</th><th>Cabang</th><th>Jabatan</th><th>PIN</th><th>Role</th><th>Status</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="employeeTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="attendancePage" class="hidden">
+      <div class="card">
+        <h2>Data Absen</h2>
+        <div class="filterbar">
+          <input id="filterStart" type="date" onchange="renderAttendance()">
+          <input id="filterEnd" type="date" onchange="renderAttendance()">
+          <select id="filterStatus" onchange="renderAttendance()">
+            <option value="">Semua Status</option>
+            <option value="hadir">Hadir</option>
+            <option value="tidak_hadir">Tidak Hadir</option>
+          </select>
+          <input id="filterKeyword" placeholder="Cari nama / cabang" oninput="renderAttendance()">
+          <button class="goldbtn" onclick="exportPDF()">Export PDF Filter</button>
+        </div>
+        <div class="summary">
+          <div class="mini">Total Hadir <b id="sumHadir">0</b></div>
+          <div class="mini">Total Tidak Hadir <b id="sumTidakHadir">0</b></div>
+          <div class="mini">Total Lembur <b id="sumLembur">0</b></div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Ket. Tidak Hadir</th><th>Face</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="employeeHomePage" class="hidden">
+      <div class="card">
+        <h2>Verifikasi Wajah</h2>
+        <video id="video" width="320" height="240" autoplay muted playsinline></video><br>
+        <button class="soft" onclick="startCamera()">Buka Kamera</button>
+        <button class="goldbtn" onclick="registerFace()">Daftarkan Wajah</button>
+        <button class="primary" onclick="checkIn()">Absen Masuk</button>
+        <button class="primary" onclick="checkOut()">Absen Pulang</button>
+        <button class="danger" onclick="showAbsentBox()">Absen Tidak Hadir</button>
+      </div>
+
+      <div id="absentBox" class="card hidden">
+        <h2>Absen Tidak Hadir</h2>
+        <select id="absentReason">
+          <option value="Sakit">Sakit</option>
+          <option value="Izin">Izin</option>
+          <option value="Keperluan keluarga">Keperluan keluarga</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+        <textarea id="absentNote" placeholder="Tulis keterangan kenapa tidak hadir"></textarea>
+        <button class="danger" onclick="saveAbsent()">Simpan Tidak Hadir</button>
+      </div>
+
+      <div class="card">
+        <h2>Hasil Absen Hari Ini</h2>
+        <div id="todayAttendanceBox" style="color:#64748b">Belum ada data absen hari ini.</div>
+      </div>
+
+      <div class="card">
+        <h2>Lembur</h2>
+        <input id="otStart" type="time">
+        <input id="otEnd" type="time">
+        <input id="otNote" placeholder="Keterangan lembur">
+        <button class="goldbtn" onclick="saveOvertime()">Simpan Lembur</button>
+      </div>
+
+      <div class="card">
+        <h2>Riwayat Absen Saya</h2>
+        <table>
+          <thead>
+            <tr><th>Tanggal</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Lembur</th><th>Keterangan</th><th>Lokasi</th></tr>
+          </thead>
+          <tbody id="myAttendanceTable"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser=null, stream=null, allAttendance=[], allEmployees=[], modelsReady=false;
+
+async function loadModels(){
+  try{
+    const MODEL_URL="https://justadudewhohacks.github.io/face-api.js/models";
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    modelsReady=true;
+    console.log("Model wajah berhasil load");
+  }catch(e){console.error(e);alert("Model wajah gagal load")}
+}
+loadModels();
+
+function today(){return new Date().toISOString().slice(0,10)}
+function logout(){location.reload()}
+
+function showPage(id,btn){
+  ["dashboardPage","employeePage","attendancePage","employeeHomePage"].forEach(x=>{
+    const el=document.getElementById(x); if(el) el.classList.add("hidden");
+  });
+  document.getElementById(id).classList.remove("hidden");
+  if(btn){
+    document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+  }
+}
+
+async function login(){
+  const pinInput = document.getElementById("pin").value.trim();
+
+  if(!pinInput){
+    alert("PIN wajib diisi");
+    return;
+  }
+
+  const {data,error} = await db
+    .from("employees")
+    .select("*")
+    .eq("pin", pinInput)
+    .maybeSingle();
+
+  if(error){
+    console.error("LOGIN ERROR:", error);
+    alert("Database error saat login");
+    return;
+  }
+
+  if(!data){
+    alert("PIN tidak ditemukan");
+    return;
+  }
+
+  if(data.is_active === false){
+    alert("Akun ini nonaktif");
+    return;
+  }
+
+  currentUser = data;
+
+  loginBox.classList.add("hidden");
+  app.classList.remove("hidden");
+  welcome.innerText = "Halo, " + data.name;
+
+  if(data.role === "admin"){
+    adminNav.classList.remove("hidden");
+    employeeNav.classList.add("hidden");
+    showPage("dashboardPage");
+    await loadAdmin();
+  }else{
+    employeeNav.classList.remove("hidden");
+    adminNav.classList.add("hidden");
+    showPage("employeeHomePage");
+    await loadEmployeeHome();
+  }
+}
+async function loadAdmin(){
+  const {data:emp}=await db.from("employees").select("*").order("created_at",{ascending:false});
+  const {data:abs}=await db.from("attendances").select("*").order("created_at",{ascending:false});
+  allEmployees=emp||[];
+  allAttendance=abs||[];
+
+  totalEmp.innerText=allEmployees.filter(e=>e.is_active).length;
+  totalToday.innerText=allAttendance.filter(a=>a.date===today()).length;
+  totalAbs.innerText=allAttendance.length;
+
+  renderEmployees();
+  renderAttendance();
+}
+
+function renderEmployees(){
+  employeeTable.innerHTML=allEmployees.map(e=>`
+    <tr>
+      <td>${e.name||""}</td>
+      <td>${e.phone||"-"}</td>
+      <td>${e.branch||"-"}</td>
+      <td>${e.position||"-"}</td>
+      <td>${e.pin||"-"}</td>
+      <td>${e.role||"employee"}</td>
+      <td><span class="badge ${e.is_active?'ok':'no'}">${e.is_active?'Aktif':'Nonaktif'}</span></td>
+      <td>
+        <button class="soft" onclick='editEmployee(${JSON.stringify(e)})'>Edit</button>
+        <button class="danger" onclick="toggleEmployee('${e.id}',${e.is_active})">${e.is_active?'Nonaktifkan':'Aktifkan'}</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+function editEmployee(e){
+  showPage("employeePage");
+  editId.value=e.id;
+  empName.value=e.name||"";
+  empPhone.value=e.phone||"";
+  empBranch.value=e.branch||"";
+  empPosition.value=e.position||"";
+  empPin.value=e.pin||"";
+  empRole.value=e.role||"employee";
+  window.scrollTo(0,0);
+}
+
+function resetEmployeeForm(){
+  editId.value="";
+  empName.value="";
+  empPhone.value="";
+  empBranch.value="";
+  empPosition.value="";
+  empPin.value="";
+  empRole.value="employee";
+}
+
+async function saveEmployee(){
+  if(!empName.value||!empPin.value)return alert("Nama dan PIN wajib diisi");
+
+  const payload={
+    name:empName.value,
+    phone:empPhone.value,
+    branch:empBranch.value,
+    position:empPosition.value,
+    pin:empPin.value,
+    role:empRole.value,
+    is_active:true
+  };
+
+  let error;
+  if(editId.value){
+    ({error}=await db.from("employees").update(payload).eq("id",editId.value));
+  }else{
+    ({error}=await db.from("employees").insert(payload));
+  }
+
+  if(error){console.error(error);return alert("Gagal simpan. PIN mungkin sudah dipakai.")}
+  alert("Data karyawan berhasil disimpan");
+  resetEmployeeForm();
+  loadAdmin();
+}
+
+async function toggleEmployee(id,status){
+  const {error}=await db.from("employees").update({is_active:!status}).eq("id",id);
+  if(error){console.error(error);return alert("Gagal ubah status")}
+  loadAdmin();
+}
+
+function getFilteredAttendance(){
+  const start=(document.getElementById("filterStart")||{}).value||"";
+  const end=(document.getElementById("filterEnd")||{}).value||"";
+  const st=(document.getElementById("filterStatus")||{}).value||"";
+  const kw=((document.getElementById("filterKeyword")||{}).value||"").toLowerCase();
+  return allAttendance.filter(a=>{
+    const status=a.status || (a.check_in?"hadir":"tidak_hadir");
+    if(start && a.date<start)return false;
+    if(end && a.date>end)return false;
+    if(st && status!==st)return false;
+    if(kw && !(`${a.employee_name||""} ${a.branch||""}`.toLowerCase().includes(kw)))return false;
+    return true;
+  });
+}
+
+function renderAttendance(){
+  const rowsData=getFilteredAttendance();
+  if(document.getElementById("sumHadir")){
+    sumHadir.innerText=rowsData.filter(a=>(a.status||"hadir")==="hadir" && a.check_in).length;
+    sumTidakHadir.innerText=rowsData.filter(a=>(a.status||"")==="tidak_hadir").length;
+    sumLembur.innerText=rowsData.filter(a=>a.overtime_start&&a.overtime_end).length;
+  }
+  attendanceTable.innerHTML=rowsData.map(a=>`
+    <tr>
+      <td>${a.employee_name||""}</td>
+      <td>${a.branch||""}</td>
+      <td>${a.date||""}</td>
+      <td><span class="badge ${(a.status||"hadir")==="tidak_hadir"?"no":"ok"}">${(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir"}</span></td>
+      <td>${a.check_in||"-"}</td>
+      <td>${a.check_out||"-"}</td>
+      <td>
+        ${a.check_in_photo?`<a href="${a.check_in_photo}" target="_blank">Foto Masuk</a>`:"-"}
+        ${a.check_out_photo?`<br><a href="${a.check_out_photo}" target="_blank">Foto Pulang</a>`:""}
+      </td>
+      <td>${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Lihat Lokasi</a>`:"-"}</td>
+      <td>${a.overtime_start&&a.overtime_end?a.overtime_start+" - "+a.overtime_end:"-"}</td>
+      <td>${a.absent_note||"-"}</td>
+      <td>${a.face_verified?"✔":"✖"}</td>
+    </tr>
+  `).join("");
+}
+
+async function startCamera(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+    video.srcObject=stream;
+    alert("Kamera berhasil dibuka");
+  }catch(e){console.error(e);alert("Kamera gagal dibuka")}
+}
+
+async function getFaceDescriptor(){
+  if(!modelsReady){alert("Model wajah masih loading");return null}
+  if(!video.srcObject){alert("Buka kamera dulu");return null}
+  const detection=await faceapi.detectSingleFace(video,new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+  if(!detection){alert("Wajah tidak terdeteksi");return null}
+  return Array.from(detection.descriptor);
+}
+
+async function registerFace(){
+  const desc=await getFaceDescriptor();
+  if(!desc)return;
+  const {error}=await db.from("employees").update({face_descriptor:desc}).eq("id",currentUser.id);
+  if(error){console.error(error);return alert("Gagal simpan wajah")}
+  currentUser.face_descriptor=desc;
+  alert("Wajah berhasil didaftarkan");
+}
+
+function distance(a,b){
+  let sum=0; for(let i=0;i<a.length;i++)sum+=(a[i]-b[i])*(a[i]-b[i]);
+  return Math.sqrt(sum);
+}
+
+async function verifyFace(){
+  const live=await getFaceDescriptor();
+  if(!live)return false;
+  if(!currentUser.face_descriptor){alert("Wajah belum didaftarkan");return false}
+  return distance(live,currentUser.face_descriptor)<0.55;
+}
+
+async function getLocation(){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation){reject(new Error("Browser tidak mendukung lokasi"));return;}
+    navigator.geolocation.getCurrentPosition(
+      p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),
+      e=>reject(e),
+      {enableHighAccuracy:true,timeout:12000,maximumAge:0}
+    );
+  });
+}
+
+async function requireLocation(){
+  try{return await getLocation();}
+  catch(e){alert("Lokasi/GPS wajib diaktifkan dan diizinkan. Absen tidak bisa dilakukan tanpa lokasi.");return null;}
+}
+
+function showAbsentBox(){
+  absentBox.classList.remove("hidden");
+  absentNote.focus();
+}
+
+async function captureAndUploadPhoto(type){
+  const canvas=document.createElement("canvas");
+  canvas.width=video.videoWidth||320;
+  canvas.height=video.videoHeight||240;
+  canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
+  const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.8));
+  const fileName=`${currentUser.id}/${today()}-${type}-${Date.now()}.jpg`;
+
+  const {error}=await db.storage.from("attendance-photos").upload(fileName,blob,{contentType:"image/jpeg",upsert:true});
+  if(error){console.error(error);alert("Gagal upload foto");return null}
+
+  const {data}=db.storage.from("attendance-photos").getPublicUrl(fileName);
+  return data.publicUrl;
+}
+
+async function checkIn(){
+  alert("Mulai absen masuk");
+  const loc=await requireLocation();
+  if(!loc)return;
+  const ok=await verifyFace();
+  if(!ok)return alert("Wajah tidak cocok");
+
+  const photoUrl=await captureAndUploadPhoto("masuk");
+
+  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+  if(exist)return alert("Sudah absen masuk hari ini");
+
+  const {error}=await db.from("attendances").insert({
+    employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),
+    status:"hadir",
+    check_in:new Date().toLocaleTimeString("id-ID"),latitude:loc.lat,longitude:loc.lng,
+    check_in_photo:photoUrl,face_verified:true
+  });
+  if(error){console.error(error);return alert("Gagal simpan absen")}
+  alert("Absen masuk berhasil");
+  await loadEmployeeHome();
+}
+
+async function checkOut(){
+  alert("Mulai absen pulang");
+  const loc=await requireLocation();
+  if(!loc)return;
+  const ok=await verifyFace();
+  if(!ok)return alert("Wajah tidak cocok");
+
+  const photoUrl=await captureAndUploadPhoto("pulang");
+  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+  if(!exist)return alert("Belum absen masuk");
+
+  const {error}=await db.from("attendances").update({
+    check_out:new Date().toLocaleTimeString("id-ID"),
+    latitude:exist.latitude||loc.lat,longitude:exist.longitude||loc.lng,
+    check_out_photo:photoUrl
+  }).eq("id",exist.id);
+
+  if(error){console.error(error);return alert("Gagal simpan pulang")}
+  alert("Absen pulang berhasil");
+  await loadEmployeeHome();
+}
+
+async function saveOvertime(){
+  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+  if(!exist)return alert("Absen masuk dulu");
+
+  const {error}=await db.from("attendances").update({
+    overtime_start:otStart.value,overtime_end:otEnd.value,overtime_note:otNote.value
+  }).eq("id",exist.id);
+
+  if(error){console.error(error);return alert("Gagal simpan lembur")}
+  alert("Lembur disimpan");
+  await loadEmployeeHome();
+}
+
+async function loadEmployeeHome(){
+  if(!currentUser)return;
+  const {data,error}=await db.from("attendances")
+    .select("*")
+    .eq("employee_id",currentUser.id)
+    .order("date",{ascending:false})
+    .order("created_at",{ascending:false});
+  if(error){console.error(error);return;}
+  const list=data||[];
+  const todayData=list.find(a=>a.date===today());
+  renderTodayAttendance(todayData);
+  renderMyAttendance(list);
+}
+
+function renderTodayAttendance(a){
+  if(!document.getElementById("todayAttendanceBox"))return;
+  if(!a){todayAttendanceBox.innerHTML="Belum ada data absen hari ini.";return;}
+  const status=(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir";
+  todayAttendanceBox.innerHTML=`
+    <div class="summary">
+      <div class="mini">Status <b>${status}</b></div>
+      <div class="mini">Masuk <b>${a.check_in||"-"}</b></div>
+      <div class="mini">Pulang <b>${a.check_out||"-"}</b></div>
+      <div class="mini">Lembur <b>${a.overtime_start&&a.overtime_end?"Ada":"-"}</b></div>
+    </div>
+    <div><b>Keterangan:</b> ${a.absent_note||a.overtime_note||"-"}</div>
+    <div><b>Lokasi:</b> ${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Lihat Lokasi</a>`:"-"}</div>`;
+}
+
+function renderMyAttendance(list){
+  if(!document.getElementById("myAttendanceTable"))return;
+  myAttendanceTable.innerHTML=list.map(a=>`
+    <tr>
+      <td>${a.date||""}</td>
+      <td><span class="badge ${(a.status||"hadir")==="tidak_hadir"?"no":"ok"}">${(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir"}</span></td>
+      <td>${a.check_in||"-"}</td>
+      <td>${a.check_out||"-"}</td>
+      <td>${a.overtime_start&&a.overtime_end?a.overtime_start+" - "+a.overtime_end:"-"}</td>
+      <td>${a.absent_note||a.overtime_note||"-"}</td>
+      <td>${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Maps</a>`:"-"}</td>
+    </tr>`).join("");
+}
+
+async function saveAbsent(){
+  const loc=await requireLocation();
+  if(!loc)return;
+  const reason=absentReason.value;
+  const note=(absentNote.value||"").trim();
+  if(!note)return alert("Keterangan tidak hadir wajib diisi");
+  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+  if(exist)return alert("Data absen hari ini sudah ada");
+  const {error}=await db.from("attendances").insert({
+    employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),
+    status:"tidak_hadir",absent_note:reason+" - "+note,absent_time:new Date().toLocaleTimeString("id-ID"),
+    latitude:loc.lat,longitude:loc.lng,face_verified:false
+  });
+  if(error){console.error(error);return alert("Gagal simpan tidak hadir. Pastikan SQL kolom tambahan sudah dijalankan.")}
+  alert("Absen tidak hadir berhasil disimpan");
+  absentBox.classList.add("hidden");absentNote.value="";
+  await loadEmployeeHome();
+}
+
+function exportPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF("landscape");
+  const rowsData=getFilteredAttendance();
+  const start=(document.getElementById("filterStart")||{}).value||"Semua";
+  const end=(document.getElementById("filterEnd")||{}).value||"Semua";
+  const periode=(start==="Semua"&&end==="Semua")?"Semua Periode":`${start} s/d ${end}`;
+  const totalHadir=rowsData.filter(a=>(a.status||"hadir")==="hadir" && a.check_in).length;
+  const totalTidak=rowsData.filter(a=>(a.status||"")==="tidak_hadir").length;
+  const totalLembur=rowsData.filter(a=>a.overtime_start&&a.overtime_end).length;
+  doc.setFontSize(16); doc.text("Laporan Absensi Fortuna Absen",14,15);
+  doc.setFontSize(10);
+  doc.text("Periode laporan: "+periode,14,22);
+  doc.text("Tanggal cetak: "+new Date().toLocaleString("id-ID"),14,28);
+  doc.text(`Total hadir: ${totalHadir}   |   Total tidak hadir: ${totalTidak}   |   Total lembur: ${totalLembur}`,14,34);
+  const rows=rowsData.map(a=>[
+    a.employee_name||"",a.branch||"",a.date||"",(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir",
+    a.check_in||"-",a.check_out||"-",a.overtime_start&&a.overtime_end?`${a.overtime_start} - ${a.overtime_end}`:"-",
+    a.absent_note||a.overtime_note||"-",a.latitude&&a.longitude?`${a.latitude}, ${a.longitude}`:"-",a.face_verified?"Terverifikasi":"Tidak"
+  ]);
+  doc.autoTable({startY:42,head:[["Nama","Cabang","Tanggal","Status","Masuk","Pulang","Lembur","Keterangan","Lokasi","Face"]],body:rows,styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[15,23,42]},alternateRowStyles:{fillColor:[248,250,252]},margin:{left:14,right:14}});
+  doc.save("laporan_absensi_fortuna.pdf");
+}
+</script>
+</body>
+</html>
