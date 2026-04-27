@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fortuna Absen</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+body{margin:0;font-family:Arial;background:#0f172a;color:#fff}
+.wrap{max-width:1100px;margin:auto;padding:20px}
+.card{background:#111827;padding:20px;border-radius:18px;margin-bottom:18px;border:1px solid #334155}
+input,button,select{padding:12px;border-radius:10px;border:0;margin:5px}
+input,select{background:#020617;color:#fff;border:1px solid #334155}
+button{background:#d4af37;color:#111;font-weight:bold;cursor:pointer}
+button:hover{opacity:.9}
+.hidden{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid #1e293b;text-align:left}
+th{color:#d4af37}
+video,canvas,img{max-width:100%;border-radius:12px}
+.small{font-size:13px;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card" id="loginBox">
+<h1>Fortuna Absen</h1>
+<p class="small">Absensi perusahaan dengan verifikasi wajah</p>
+<input id="pin" placeholder="Masukkan PIN">
+<button onclick="login()">Login</button>
+</div>
+
+<div id="app" class="hidden">
+
+<div class="card">
+<h2 id="welcome"></h2>
+<button onclick="logout()">Logout</button>
+</div>
+
+<div id="employeePanel" class="hidden">
+<div class="card">
+<h2>Verifikasi Wajah</h2>
+<video id="video" width="320" height="240" autoplay muted></video><br>
+<button onclick="startCamera()">Buka Kamera</button>
+<button onclick="registerFace()">Daftarkan Wajah</button>
+<button onclick="checkIn()">Absen Masuk</button>
+<button onclick="checkOut()">Absen Pulang</button>
+</div>
+
+<div class="card">
+<h2>Lembur</h2>
+<input id="otStart" type="time">
+<input id="otEnd" type="time">
+<input id="otNote" placeholder="Keterangan lembur">
+<button onclick="saveOvertime()">Simpan Lembur</button>
+</div>
+</div>
+
+<div id="adminPanel" class="hidden">
+
+<div class="card">
+<h2>Tambah Karyawan</h2>
+<input id="empName" placeholder="Nama">
+<input id="empPhone" placeholder="No HP">
+<input id="empBranch" placeholder="Cabang">
+<input id="empPosition" placeholder="Jabatan">
+<input id="empPin" placeholder="PIN">
+<button onclick="addEmployee()">Tambah</button>
+</div>
+
+<div class="grid">
+<div class="card"><h3>Total Karyawan</h3><h1 id="totalEmp">0</h1></div>
+<div class="card"><h3>Hadir Hari Ini</h3><h1 id="totalToday">0</h1></div>
+<div class="card"><h3>Export</h3><button onclick="exportExcel()">Download Excel</button></div>
+</div>
+
+<div class="card">
+<h2>Data Absen</h2>
+<table>
+<thead>
+<tr>
+<th>Nama</th><th>Tanggal</th><th>Masuk</th><th>Pulang</th><th>Face</th>
+</tr>
+</thead>
+<tbody id="attendanceTable"></tbody>
+</table>
+</div>
+
+</div>
+</div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw;
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser=null;
+let stream=null;
+let allAttendance=[];
+
+async function loadModels(){
+await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/weights');
+await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/weights');
+await faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/weights');
+}
+loadModels();
+
+function today(){ return new Date().toISOString().slice(0,10); }
+
+async function login(){
+const pin=document.getElementById("pin").value.trim();
+const {data,error}=await db.from("employees").select("*").eq("pin",pin).single();
+if(error||!data){ alert("PIN salah"); return; }
+
+currentUser=data;
+loginBox.classList.add("hidden");
+app.classList.remove("hidden");
+welcome.innerText="Halo, "+data.name;
+
+if(data.role==="admin"){
+adminPanel.classList.remove("hidden");
+loadAdmin();
+}else{
+employeePanel.classList.remove("hidden");
+}
+}
+
+function logout(){ location.reload(); }
+
+async function startCamera(){
+stream = await navigator.mediaDevices.getUserMedia({video:true});
+video.srcObject=stream;
+}
+
+async function getFaceDescriptor(){
+const detection = await faceapi.detectSingleFace(
+video,
+new faceapi.TinyFaceDetectorOptions()
+).withFaceLandmarks().withFaceDescriptor();
+
+if(!detection) return null;
+return Array.from(detection.descriptor);
+}
+
+async function registerFace(){
+const desc = await getFaceDescriptor();
+if(!desc) return alert("Wajah tidak terdeteksi");
+
+await db.from("employees")
+.update({face_descriptor: desc})
+.eq("id", currentUser.id);
+
+alert("Wajah berhasil didaftarkan");
+}
+
+function distance(a,b){
+let sum=0;
+for(let i=0;i<a.length;i++){
+sum += (a[i]-b[i])*(a[i]-b[i]);
+}
+return Math.sqrt(sum);
+}
+
+async function verifyFace(){
+const live = await getFaceDescriptor();
+if(!live) return false;
+
+if(!currentUser.face_descriptor) return false;
+
+const d = distance(live,currentUser.face_descriptor);
+return d < 0.55;
+}
+
+async function getLocation(){
+return new Promise(resolve=>{
+navigator.geolocation.getCurrentPosition(
+p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),
+()=>resolve({lat:null,lng:null})
+);
+});
+}
+
+async function checkIn(){
+const ok = await verifyFace();
+if(!ok) return alert("Wajah tidak cocok");
+
+const loc=await getLocation();
+
+const {data:exist}=await db.from("attendances")
+.select("*")
+.eq("employee_id",currentUser.id)
+.eq("date",today())
+.maybeSingle();
+
+if(exist) return alert("Sudah absen masuk");
+
+await db.from("attendances").insert({
+employee_id: currentUser.id,
+employee_name: currentUser.name,
+branch: currentUser.branch,
+date: today(),
+check_in: new Date().toLocaleTimeString("id-ID"),
+latitude: loc.lat,
+longitude: loc.lng,
+face_verified: true
+});
+
+alert("Absen masuk berhasil");
+}
+
+async function checkOut(){
+const ok = await verifyFace();
+if(!ok) return alert("Wajah tidak cocok");
+
+const {data:exist}=await db.from("attendances")
+.select("*")
+.eq("employee_id",currentUser.id)
+.eq("date",today())
+.maybeSingle();
+
+if(!exist) return alert("Belum absen masuk");
+
+await db.from("attendances")
+.update({check_out:new Date().toLocaleTimeString("id-ID")})
+.eq("id",exist.id);
+
+alert("Absen pulang berhasil");
+}
+
+async function saveOvertime(){
+const {data:exist}=await db.from("attendances")
+.select("*")
+.eq("employee_id",currentUser.id)
+.eq("date",today())
+.maybeSingle();
+
+if(!exist) return alert("Absen dulu");
+
+await db.from("attendances")
+.update({
+overtime_start: otStart.value,
+overtime_end: otEnd.value,
+overtime_note: otNote.value
+})
+.eq("id",exist.id);
+
+alert("Lembur disimpan");
+}
+
+async function addEmployee(){
+await db.from("employees").insert({
+name: empName.value,
+phone: empPhone.value,
+branch: empBranch.value,
+position: empPosition.value,
+pin: empPin.value,
+role: "employee"
+});
+alert("Karyawan ditambahkan");
+loadAdmin();
+}
+
+async function loadAdmin(){
+const {data:emp}=await db.from("employees").select("*");
+const {data:abs}=await db.from("attendances").select("*").order("created_at",{ascending:false});
+
+allAttendance=abs||[];
+
+totalEmp.innerText=emp.length;
+totalToday.innerText=allAttendance.filter(x=>x.date===today()).length;
+
+attendanceTable.innerHTML=allAttendance.map(a=>`
+<tr>
+<td>${a.employee_name||''}</td>
+<td>${a.date||''}</td>
+<td>${a.check_in||'-'}</td>
+<td>${a.check_out||'-'}</td>
+<td>${a.face_verified?'✔':'✖'}</td>
+</tr>
+`).join('');
+}
+
+function exportExcel(){
+const ws=XLSX.utils.json_to_sheet(allAttendance);
+const wb=XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb,ws,"Absen");
+XLSX.writeFile(wb,"fortuna_absen.xlsx");
+}
+</script>
+</body>
+</html>
