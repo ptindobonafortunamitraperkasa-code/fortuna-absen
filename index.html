@@ -105,13 +105,24 @@ let currentUser=null;
 let stream=null;
 let allAttendance=[];
 
+let modelsReady = false;
+
 async function loadModels(){
-await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/weights');
-await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/weights');
-await faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/weights');
+  try{
+    const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
+
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+
+    modelsReady = true;
+    console.log("Model wajah berhasil load");
+  }catch(err){
+    console.error("Model wajah gagal load:", err);
+    alert("Model wajah gagal load. Cek internet/CDN.");
+  }
 }
 loadModels();
-
 function today(){ return new Date().toISOString().slice(0,10); }
 
 async function login(){
@@ -140,6 +151,10 @@ video.srcObject=stream;
 }
 
 async function getFaceDescriptor(){
+  if(!modelsReady){
+  alert("Model wajah masih loading, tunggu 5 detik lalu coba lagi");
+  return null;
+}
 const detection = await faceapi.detectSingleFace(
 video,
 new faceapi.TinyFaceDetectorOptions()
