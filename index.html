@@ -203,27 +203,52 @@ function showPage(id,btn){
 }
 
 async function login(){
-  const pin=document.getElementById("pin").value.trim();
-  if(!pin)return alert("PIN wajib diisi");
+  const pinInput = document.getElementById("pin").value.trim();
 
-  const {data,error}=await db.from("employees").select("*").eq("pin",pin).eq("is_active",true).single();
-  if(error||!data){console.error(error);return alert("PIN salah")}
+  if(!pinInput){
+    alert("PIN wajib diisi");
+    return;
+  }
 
-  currentUser=data;
+  const {data,error} = await db
+    .from("employees")
+    .select("*")
+    .eq("pin", pinInput)
+    .maybeSingle();
+
+  if(error){
+    console.error("LOGIN ERROR:", error);
+    alert("Database error saat login");
+    return;
+  }
+
+  if(!data){
+    alert("PIN tidak ditemukan");
+    return;
+  }
+
+  if(data.is_active === false){
+    alert("Akun ini nonaktif");
+    return;
+  }
+
+  currentUser = data;
+
   loginBox.classList.add("hidden");
   app.classList.remove("hidden");
-  welcome.innerText="Halo, "+data.name;
+  welcome.innerText = "Halo, " + data.name;
 
-  if(data.role==="admin"){
+  if(data.role === "admin"){
     adminNav.classList.remove("hidden");
+    employeeNav.classList.add("hidden");
     showPage("dashboardPage");
     await loadAdmin();
   }else{
     employeeNav.classList.remove("hidden");
+    adminNav.classList.add("hidden");
     showPage("employeeHomePage");
   }
 }
-
 async function loadAdmin(){
   const {data:emp}=await db.from("employees").select("*").order("created_at",{ascending:false});
   const {data:abs}=await db.from("attendances").select("*").order("created_at",{ascending:false});
