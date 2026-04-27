@@ -7,11 +7,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:#fff}
-.wrap{max-width:1100px;margin:auto;padding:20px}
+.wrap{max-width:1200px;margin:auto;padding:20px}
 .card{background:#111827;padding:20px;border-radius:18px;margin-bottom:18px;border:1px solid #334155}
 input,button,select{padding:12px;border-radius:10px;border:0;margin:5px}
 input,select{background:#020617;color:#fff;border:1px solid #334155}
@@ -19,13 +20,15 @@ button{background:#d4af37;color:#111;font-weight:bold;cursor:pointer}
 button:hover{opacity:.9}
 .hidden{display:none}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
-table{width:100%;border-collapse:collapse}
+table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:10px;border-bottom:1px solid #1e293b;text-align:left}
 th{color:#d4af37}
-video,canvas,img{max-width:100%;border-radius:12px}
+video,img{max-width:100%;border-radius:12px;background:#020617}
+a{color:#d4af37}
 .small{font-size:13px;color:#94a3b8}
 </style>
 </head>
+
 <body>
 <div class="wrap">
 
@@ -46,7 +49,8 @@ video,canvas,img{max-width:100%;border-radius:12px}
 <div id="employeePanel" class="hidden">
 <div class="card">
 <h2>Verifikasi Wajah</h2>
-<video id="video" width="320" height="240" autoplay muted></video><br>
+<p class="small">Buka kamera, daftarkan wajah, lalu absen.</p>
+<video id="video" width="320" height="240" autoplay muted playsinline></video><br>
 <button onclick="startCamera()">Buka Kamera</button>
 <button onclick="registerFace()">Daftarkan Wajah</button>
 <button onclick="checkIn()">Absen Masuk</button>
@@ -77,7 +81,7 @@ video,canvas,img{max-width:100%;border-radius:12px}
 <div class="grid">
 <div class="card"><h3>Total Karyawan</h3><h1 id="totalEmp">0</h1></div>
 <div class="card"><h3>Hadir Hari Ini</h3><h1 id="totalToday">0</h1></div>
-<div class="card"><h3>Export</h3><button onclick="exportExcel()">Download Excel</button></div>
+<div class="card"><h3>Laporan</h3><button onclick="exportPDF()">Download PDF</button></div>
 </div>
 
 <div class="card">
@@ -85,7 +89,15 @@ video,canvas,img{max-width:100%;border-radius:12px}
 <table>
 <thead>
 <tr>
-<th>Nama</th><th>Tanggal</th><th>Masuk</th><th>Pulang</th><th>Face</th>
+<th>Nama</th>
+<th>Cabang</th>
+<th>Tanggal</th>
+<th>Masuk</th>
+<th>Pulang</th>
+<th>Foto</th>
+<th>Lokasi</th>
+<th>Lembur</th>
+<th>Face</th>
 </tr>
 </thead>
 <tbody id="attendanceTable"></tbody>
@@ -99,69 +111,108 @@ video,canvas,img{max-width:100%;border-radius:12px}
 <script>
 const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
+
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentUser=null;
-let stream=null;
-let allAttendance=[];
-
+let currentUser = null;
+let stream = null;
+let allAttendance = [];
 let modelsReady = false;
 
 async function loadModels(){
   try{
     const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
-
     await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
     await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
     await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-
     modelsReady = true;
     console.log("Model wajah berhasil load");
   }catch(err){
     console.error("Model wajah gagal load:", err);
-    alert("Model wajah gagal load. Cek internet/CDN.");
+    alert("Model wajah gagal load. Cek internet.");
   }
 }
 loadModels();
-function today(){ return new Date().toISOString().slice(0,10); }
+
+function today(){
+  return new Date().toISOString().slice(0,10);
+}
 
 async function login(){
-const pin=document.getElementById("pin").value.trim();
-const {data,error}=await db.from("employees").select("*").eq("pin",pin).single();
-if(error||!data){ alert("PIN salah"); return; }
+  const pin = document.getElementById("pin").value.trim();
+  if(!pin) return alert("PIN wajib diisi");
 
-currentUser=data;
-loginBox.classList.add("hidden");
-app.classList.remove("hidden");
-welcome.innerText="Halo, "+data.name;
+  const {data,error} = await db
+    .from("employees")
+    .select("*")
+    .eq("pin",pin)
+    .eq("is_active",true)
+    .single();
 
-if(data.role==="admin"){
-adminPanel.classList.remove("hidden");
-loadAdmin();
-}else{
-employeePanel.classList.remove("hidden");
+  if(error || !data){
+    console.error(error);
+    alert("PIN salah");
+    return;
+  }
+
+  currentUser = data;
+  loginBox.classList.add("hidden");
+  app.classList.remove("hidden");
+  welcome.innerText = "Halo, " + data.name;
+
+  if(data.role === "admin"){
+    adminPanel.classList.remove("hidden");
+    employeePanel.classList.add("hidden");
+    loadAdmin();
+  }else{
+    employeePanel.classList.remove("hidden");
+    adminPanel.classList.add("hidden");
+  }
 }
-}
 
-function logout(){ location.reload(); }
+function logout(){
+  location.reload();
+}
 
 async function startCamera(){
-stream = await navigator.mediaDevices.getUserMedia({video:true});
-video.srcObject=stream;
+  try{
+    const videoEl = document.getElementById("video");
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"user"},
+      audio:false
+    });
+    videoEl.srcObject = stream;
+    alert("Kamera berhasil dibuka");
+  }catch(err){
+    console.error(err);
+    alert("Kamera gagal dibuka. Izinkan kamera di browser.");
+  }
 }
 
 async function getFaceDescriptor(){
   if(!modelsReady){
-  alert("Model wajah masih loading, tunggu 5 detik lalu coba lagi");
-  return null;
-}
-const detection = await faceapi.detectSingleFace(
-video,
-new faceapi.TinyFaceDetectorOptions()
-).withFaceLandmarks().withFaceDescriptor();
+    alert("Model wajah masih loading. Tunggu 5-10 detik lalu coba lagi.");
+    return null;
+  }
 
-if(!detection) return null;
-return Array.from(detection.descriptor);
+  const videoEl = document.getElementById("video");
+
+  if(!videoEl.srcObject){
+    alert("Buka kamera dulu");
+    return null;
+  }
+
+  const detection = await faceapi.detectSingleFace(
+    videoEl,
+    new faceapi.TinyFaceDetectorOptions()
+  ).withFaceLandmarks().withFaceDescriptor();
+
+  if(!detection){
+    alert("Wajah tidak terdeteksi. Pastikan wajah jelas dan cahaya cukup.");
+    return null;
+  }
+
+  return Array.from(detection.descriptor);
 }
 
 async function registerFace(){
@@ -169,11 +220,7 @@ async function registerFace(){
     alert("Mulai daftar wajah");
 
     const desc = await getFaceDescriptor();
-
-    if(!desc){
-      alert("Wajah tidak terdeteksi");
-      return;
-    }
+    if(!desc) return;
 
     const { error } = await db
       .from("employees")
@@ -193,43 +240,102 @@ async function registerFace(){
     alert("Error daftar wajah");
   }
 }
+
 function distance(a,b){
-let sum=0;
-for(let i=0;i<a.length;i++){
-sum += (a[i]-b[i])*(a[i]-b[i]);
-}
-return Math.sqrt(sum);
+  let sum = 0;
+  for(let i=0;i<a.length;i++){
+    sum += (a[i]-b[i])*(a[i]-b[i]);
+  }
+  return Math.sqrt(sum);
 }
 
 async function verifyFace(){
-const live = await getFaceDescriptor();
-if(!live) return false;
+  const live = await getFaceDescriptor();
+  if(!live) return false;
 
-if(!currentUser.face_descriptor) return false;
+  if(!currentUser.face_descriptor){
+    alert("Wajah belum didaftarkan");
+    return false;
+  }
 
-const d = distance(live,currentUser.face_descriptor);
-return d < 0.55;
+  const d = distance(live,currentUser.face_descriptor);
+  console.log("Jarak wajah:", d);
+
+  return d < 0.55;
 }
 
 async function getLocation(){
-return new Promise(resolve=>{
-navigator.geolocation.getCurrentPosition(
-p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),
-()=>resolve({lat:null,lng:null})
-);
-});
+  return new Promise(resolve=>{
+    if(!navigator.geolocation){
+      resolve({lat:null,lng:null});
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),
+      err=>{
+        console.error(err);
+        alert("Lokasi gagal dibaca. Izinkan GPS/lokasi.");
+        resolve({lat:null,lng:null});
+      },
+      {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+    );
+  });
+}
+
+async function captureAndUploadPhoto(type){
+  const videoEl = document.getElementById("video");
+
+  if(!videoEl.srcObject){
+    alert("Kamera belum dibuka");
+    return null;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = videoEl.videoWidth || 320;
+  canvas.height = videoEl.videoHeight || 240;
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(videoEl,0,0,canvas.width,canvas.height);
+
+  const blob = await new Promise(resolve=>{
+    canvas.toBlob(resolve,"image/jpeg",0.8);
+  });
+
+  const fileName = `${currentUser.id}/${today()}-${type}-${Date.now()}.jpg`;
+
+  const { error } = await db.storage
+    .from("attendance-photos")
+    .upload(fileName,blob,{
+      contentType:"image/jpeg",
+      upsert:true
+    });
+
+  if(error){
+    console.error(error);
+    alert("Gagal upload foto absen");
+    return null;
+  }
+
+  const { data } = db.storage
+    .from("attendance-photos")
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
 }
 
 async function checkIn(){
   try{
-    alert("Mulai absen");
+    alert("Mulai absen masuk");
 
     const ok = await verifyFace();
-
     if(!ok){
       alert("Wajah tidak cocok");
       return;
     }
+
+    const photoUrl = await captureAndUploadPhoto("masuk");
+    if(!photoUrl) return;
 
     const loc = await getLocation();
 
@@ -241,7 +347,7 @@ async function checkIn(){
       .maybeSingle();
 
     if(exist){
-      alert("Sudah absen hari ini");
+      alert("Sudah absen masuk hari ini");
       return;
     }
 
@@ -253,99 +359,208 @@ async function checkIn(){
       check_in: new Date().toLocaleTimeString("id-ID"),
       latitude: loc.lat,
       longitude: loc.lng,
+      check_in_photo: photoUrl,
       face_verified: true
     });
 
     if(error){
       console.error(error);
-      alert("Gagal simpan absen");
+      alert("Gagal simpan absen masuk");
       return;
     }
 
-    alert("Absen berhasil");
+    alert("Absen masuk berhasil");
   }catch(err){
     console.error(err);
-    alert("Error absen");
+    alert("Error absen masuk");
   }
 }
 
 async function checkOut(){
-const ok = await verifyFace();
-if(!ok) return alert("Wajah tidak cocok");
+  try{
+    alert("Mulai absen pulang");
 
-const {data:exist}=await db.from("attendances")
-.select("*")
-.eq("employee_id",currentUser.id)
-.eq("date",today())
-.maybeSingle();
+    const ok = await verifyFace();
+    if(!ok){
+      alert("Wajah tidak cocok");
+      return;
+    }
 
-if(!exist) return alert("Belum absen masuk");
+    const photoUrl = await captureAndUploadPhoto("pulang");
+    if(!photoUrl) return;
 
-await db.from("attendances")
-.update({check_out:new Date().toLocaleTimeString("id-ID")})
-.eq("id",exist.id);
+    const { data: exist } = await db
+      .from("attendances")
+      .select("*")
+      .eq("employee_id", currentUser.id)
+      .eq("date", today())
+      .maybeSingle();
 
-alert("Absen pulang berhasil");
+    if(!exist){
+      alert("Belum absen masuk");
+      return;
+    }
+
+    const { error } = await db.from("attendances")
+      .update({
+        check_out: new Date().toLocaleTimeString("id-ID"),
+        check_out_photo: photoUrl
+      })
+      .eq("id", exist.id);
+
+    if(error){
+      console.error(error);
+      alert("Gagal simpan absen pulang");
+      return;
+    }
+
+    alert("Absen pulang berhasil");
+  }catch(err){
+    console.error(err);
+    alert("Error absen pulang");
+  }
 }
 
 async function saveOvertime(){
-const {data:exist}=await db.from("attendances")
-.select("*")
-.eq("employee_id",currentUser.id)
-.eq("date",today())
-.maybeSingle();
+  const {data:exist} = await db.from("attendances")
+    .select("*")
+    .eq("employee_id",currentUser.id)
+    .eq("date",today())
+    .maybeSingle();
 
-if(!exist) return alert("Absen dulu");
+  if(!exist) return alert("Absen masuk dulu");
 
-await db.from("attendances")
-.update({
-overtime_start: otStart.value,
-overtime_end: otEnd.value,
-overtime_note: otNote.value
-})
-.eq("id",exist.id);
+  const {error} = await db.from("attendances")
+    .update({
+      overtime_start: otStart.value,
+      overtime_end: otEnd.value,
+      overtime_note: otNote.value
+    })
+    .eq("id",exist.id);
 
-alert("Lembur disimpan");
+  if(error){
+    console.error(error);
+    alert("Gagal simpan lembur");
+    return;
+  }
+
+  alert("Lembur disimpan");
 }
 
 async function addEmployee(){
-await db.from("employees").insert({
-name: empName.value,
-phone: empPhone.value,
-branch: empBranch.value,
-position: empPosition.value,
-pin: empPin.value,
-role: "employee"
-});
-alert("Karyawan ditambahkan");
-loadAdmin();
+  if(!empName.value || !empPin.value){
+    alert("Nama dan PIN wajib diisi");
+    return;
+  }
+
+  const {error} = await db.from("employees").insert({
+    name: empName.value,
+    phone: empPhone.value,
+    branch: empBranch.value,
+    position: empPosition.value,
+    pin: empPin.value,
+    role: "employee",
+    is_active: true
+  });
+
+  if(error){
+    console.error(error);
+    alert("Gagal tambah karyawan. Mungkin PIN sudah dipakai.");
+    return;
+  }
+
+  alert("Karyawan ditambahkan");
+  empName.value = "";
+  empPhone.value = "";
+  empBranch.value = "";
+  empPosition.value = "";
+  empPin.value = "";
+  loadAdmin();
 }
 
 async function loadAdmin(){
-const {data:emp}=await db.from("employees").select("*");
-const {data:abs}=await db.from("attendances").select("*").order("created_at",{ascending:false});
+  const {data:emp,error:empErr} = await db.from("employees").select("*").eq("is_active",true);
+  const {data:abs,error:absErr} = await db.from("attendances").select("*").order("created_at",{ascending:false});
 
-allAttendance=abs||[];
+  if(empErr || absErr){
+    console.error(empErr || absErr);
+    alert("Gagal load data admin");
+    return;
+  }
 
-totalEmp.innerText=emp.length;
-totalToday.innerText=allAttendance.filter(x=>x.date===today()).length;
+  allAttendance = abs || [];
 
-attendanceTable.innerHTML=allAttendance.map(a=>`
-<tr>
-<td>${a.employee_name||''}</td>
-<td>${a.date||''}</td>
-<td>${a.check_in||'-'}</td>
-<td>${a.check_out||'-'}</td>
-<td>${a.face_verified?'✔':'✖'}</td>
-</tr>
-`).join('');
+  totalEmp.innerText = emp ? emp.length : 0;
+  totalToday.innerText = allAttendance.filter(x=>x.date===today()).length;
+
+  attendanceTable.innerHTML = allAttendance.map(a=>`
+    <tr>
+      <td>${a.employee_name || ""}</td>
+      <td>${a.branch || ""}</td>
+      <td>${a.date || ""}</td>
+      <td>${a.check_in || "-"}</td>
+      <td>${a.check_out || "-"}</td>
+      <td>
+        ${a.check_in_photo ? `<a href="${a.check_in_photo}" target="_blank">Foto Masuk</a>` : "-"}
+        ${a.check_out_photo ? `<br><a href="${a.check_out_photo}" target="_blank">Foto Pulang</a>` : ""}
+      </td>
+      <td>
+        ${a.latitude && a.longitude
+          ? `<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Lihat Lokasi</a>`
+          : "-"}
+      </td>
+      <td>${a.overtime_start && a.overtime_end ? a.overtime_start + " - " + a.overtime_end : "-"}</td>
+      <td>${a.face_verified ? "✔" : "✖"}</td>
+    </tr>
+  `).join("");
 }
 
-function exportExcel(){
-const ws=XLSX.utils.json_to_sheet(allAttendance);
-const wb=XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb,ws,"Absen");
-XLSX.writeFile(wb,"fortuna_absen.xlsx");
+function exportPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("landscape");
+
+  doc.setFontSize(16);
+  doc.text("Laporan Absensi Fortuna Absen",14,15);
+
+  doc.setFontSize(10);
+  doc.text("Tanggal cetak: " + new Date().toLocaleString("id-ID"),14,22);
+
+  const rows = allAttendance.map(a=>[
+    a.employee_name || "",
+    a.branch || "",
+    a.date || "",
+    a.check_in || "-",
+    a.check_out || "-",
+    a.overtime_start && a.overtime_end ? `${a.overtime_start} - ${a.overtime_end}` : "-",
+    a.overtime_note || "-",
+    a.latitude && a.longitude ? `${a.latitude}, ${a.longitude}` : "-",
+    a.face_verified ? "Terverifikasi" : "Tidak"
+  ]);
+
+  doc.autoTable({
+    startY:28,
+    head:[[
+      "Nama",
+      "Cabang",
+      "Tanggal",
+      "Masuk",
+      "Pulang",
+      "Lembur",
+      "Ket. Lembur",
+      "Lokasi",
+      "Face"
+    ]],
+    body:rows,
+    styles:{
+      fontSize:8,
+      cellPadding:2
+    },
+    headStyles:{
+      fillColor:[20,20,20]
+    }
+  });
+
+  doc.save("laporan_absensi_fortuna.pdf");
 }
 </script>
 </body>
