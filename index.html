@@ -725,8 +725,8 @@ async function startCamera(){
       audio:false
     });
    video.srcObject=stream;
-video.style.transform = "scaleX(1)";
-video.style.webkitTransform = "scaleX(1)";
+video.style.transform = "scaleX(-1)";
+video.style.webkitTransform = "scaleX(-1)";
     const ok=await waitVideoReady();
     cameraReady=ok;
     if(ok){
