@@ -114,6 +114,7 @@ input,select{width:100%}
       <button class="active" onclick="showPage('dashboardPage',this)">Dashboard</button>
       <button onclick="showPage('employeePage',this)">Data Karyawan</button>
       <button onclick="showPage('attendancePage',this)">Data Absen & Export</button>
+      <button onclick="showPage('workSettingPage',this)">Jam Kerja Cabang</button>
       <button onclick="exportPDF('download')">Download PDF</button>
       <button onclick="logout()">Logout</button>
     </div>
@@ -138,7 +139,37 @@ input,select{width:100%}
         <div class="card stat"><p>Total Karyawan Aktif</p><h1 id="totalEmp">0</h1></div>
         <div class="card stat"><p>Hadir Hari Ini</p><h1 id="totalToday">0</h1></div>
         <div class="card stat"><p>Tidak Hadir Hari Ini</p><h1 id="totalAbsentToday">0</h1></div>
+        <div class="card stat"><p>Terlambat Hari Ini</p><h1 id="totalLateToday">0</h1></div>
+        <div class="card stat"><p>Lebih Awal Hari Ini</p><h1 id="totalEarlyToday">0</h1></div>
         <div class="card stat"><p>Total Data Absen</p><h1 id="totalAbs">0</h1></div>
+      </div>
+      <div class="card scroll">
+        <h2>Daftar Terlambat Hari Ini</h2>
+        <p class="muted">Kalau ada karyawan absen lewat batas jam cabang, namanya langsung muncul di sini.</p>
+        <table>
+          <thead><tr><th>Nama</th><th>Cabang/Gudang</th><th>Jam Masuk</th><th>Keterlambatan</th></tr></thead>
+          <tbody id="lateTodayTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="workSettingPage" class="hidden">
+      <div class="card">
+        <h2>Pengaturan Jam Kerja per Cabang/Gudang</h2>
+        <p class="muted">Contoh: jam masuk 07:45 dan batas telat 08:00. Kalau absen sebelum 07:45 = Lebih Awal, 07:45-08:00 = Tepat Waktu/Hadir, lewat 08:00 = Terlambat.</p>
+        <div class="form-grid">
+          <select id="workBranchSelect"></select>
+          <input id="workStartTime" type="time" value="07:45">
+          <input id="workLateTime" type="time" value="08:00">
+          <button class="goldbtn" onclick="saveWorkSetting()">Simpan Jam Cabang</button>
+        </div>
+      </div>
+      <div class="card scroll">
+        <h2>Daftar Setting Jam Cabang</h2>
+        <table>
+          <thead><tr><th>Cabang/Gudang</th><th>Jam Masuk Standar</th><th>Batas Telat</th><th>Status</th></tr></thead>
+          <tbody id="workSettingsTable"></tbody>
+        </table>
       </div>
     </section>
 
@@ -185,6 +216,12 @@ input,select{width:100%}
             <option value="hadir">Hadir</option>
             <option value="tidak_hadir">Tidak Hadir</option>
           </select>
+          <select id="filterPunctuality" onchange="renderAttendance()">
+            <option value="all">Semua Waktu</option>
+            <option value="early">Lebih Awal</option>
+            <option value="ontime">Tepat Waktu</option>
+            <option value="late">Terlambat</option>
+          </select>
           <select id="filterBranch" onchange="renderAttendance()">
             <option value="all">Semua Cabang / Gudang</option>
           </select>
@@ -201,6 +238,8 @@ input,select{width:100%}
         <div class="card stat"><p>Total Hadir Filter</p><h1 id="sumPresent">0</h1></div>
         <div class="card stat"><p>Total Tidak Hadir Filter</p><h1 id="sumAbsent">0</h1></div>
         <div class="card stat"><p>Total Lembur Filter</p><h1 id="sumOvertime">0</h1></div>
+        <div class="card stat"><p>Total Terlambat Filter</p><h1 id="sumLate">0</h1></div>
+        <div class="card stat"><p>Total Lebih Awal Filter</p><h1 id="sumEarly">0</h1></div>
       </div>
 
       <div class="card scroll">
@@ -208,7 +247,7 @@ input,select{width:100%}
         <table>
           <thead>
             <tr>
-              <th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Tidak Hadir</th><th>Alasan</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Face</th>
+              <th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Status</th><th>Status Waktu</th><th>Selisih</th><th>Masuk</th><th>Pulang</th><th>Tidak Hadir</th><th>Alasan</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Face</th>
             </tr>
           </thead>
           <tbody id="attendanceTable"></tbody>
@@ -266,7 +305,7 @@ input,select{width:100%}
         <table>
           <thead>
             <tr>
-              <th>Tanggal</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Tidak Hadir</th><th>Alasan</th><th>Lembur</th><th>Lokasi</th>
+              <th>Tanggal</th><th>Status</th><th>Status Waktu</th><th>Selisih</th><th>Masuk</th><th>Pulang</th><th>Tidak Hadir</th><th>Alasan</th><th>Lembur</th><th>Lokasi</th>
             </tr>
           </thead>
           <tbody id="myAttendanceTable"></tbody>
@@ -281,7 +320,7 @@ const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentUser=null, stream=null, allAttendance=[], allEmployees=[], myAttendance=[], modelsReady=false, cameraReady=false, isProcessing=false;
+let currentUser=null, stream=null, allAttendance=[], allEmployees=[], myAttendance=[], workSettings=[], modelsReady=false, cameraReady=false, isProcessing=false;
 
 async function loadModels(){
   try{
@@ -352,10 +391,35 @@ function statusBadge(status){
   if(status==="tidak_hadir") return `<span class="badge no">Tidak Hadir</span>`;
   return `<span class="badge ok">Hadir</span>`;
 }
+function punctualityBadge(status,label){
+  if(status==="late") return `<span class="badge no">${label||"Terlambat"}</span>`;
+  if(status==="early") return `<span class="badge info">${label||"Lebih Awal"}</span>`;
+  if(status==="ontime") return `<span class="badge ok">${label||"Tepat Waktu"}</span>`;
+  return `<span class="badge warn">Belum Ada</span>`;
+}
+function timeToMinutes(t){
+  if(!t || !String(t).includes(":"))return null;
+  const [h,m]=String(t).slice(0,5).split(":").map(Number);
+  return (h*60)+m;
+}
+function getWorkSetting(branch){
+  const b=(branch||"").trim();
+  return workSettings.find(x=>(x.branch||"").trim()===b) || {branch:b,start_time:"07:45",late_time:"08:00"};
+}
+function calculatePunctuality(branch, timeText){
+  const setting=getWorkSetting(branch);
+  const masuk=timeToMinutes(timeText);
+  const start=timeToMinutes(setting.start_time||"07:45");
+  const late=timeToMinutes(setting.late_time||"08:00");
+  if(masuk===null || start===null || late===null) return {status:"unknown",minutes:0,label:"-"};
+  if(masuk < start){const diff=start-masuk; return {status:"early",minutes:diff,label:`Lebih Awal ${diff} menit`};}
+  if(masuk > late){const diff=masuk-late; return {status:"late",minutes:diff,label:`Terlambat ${diff} menit`};}
+  return {status:"ontime",minutes:0,label:"Tepat Waktu"};
+}
 function logout(){location.reload()}
 
 function showPage(id,btn){
-  ["dashboardPage","employeePage","attendancePage","employeeHomePage"].forEach(x=>{
+  ["dashboardPage","employeePage","attendancePage","workSettingPage","employeeHomePage"].forEach(x=>{
     const el=document.getElementById(x); if(el) el.classList.add("hidden");
   });
   document.getElementById(id).classList.remove("hidden");
@@ -398,22 +462,31 @@ async function login(){
 async function loadAdmin(){
   const {data:emp}=await db.from("employees").select("*").order("created_at",{ascending:false});
   const {data:abs}=await db.from("attendances").select("*").order("date",{ascending:false}).order("created_at",{ascending:false});
+  const {data:ws,error:wsErr}=await db.from("branch_work_settings").select("*").order("branch",{ascending:true});
+  if(wsErr){console.warn("Work setting belum ada / SQL belum dijalankan",wsErr); workSettings=[];} else {workSettings=ws||[];}
   allEmployees=emp||[];
   allAttendance=abs||[];
 
   totalEmp.innerText=allEmployees.filter(e=>e.is_active).length;
   totalToday.innerText=allAttendance.filter(a=>a.date===today() && (a.status||"hadir")!=="tidak_hadir").length;
   totalAbsentToday.innerText=allAttendance.filter(a=>a.date===today() && a.status==="tidak_hadir").length;
+  const lateToday=allAttendance.filter(a=>a.date===today() && a.punctuality_status==="late");
+  totalLateToday.innerText=lateToday.length;
+  totalEarlyToday.innerText=allAttendance.filter(a=>a.date===today() && a.punctuality_status==="early").length;
   totalAbs.innerText=allAttendance.length;
+  lateTodayTable.innerHTML=lateToday.length?lateToday.map(a=>`<tr><td>${safe(a.employee_name)}</td><td>${safe(a.branch)}</td><td>${safe(a.check_in)}</td><td>${safe(a.punctuality_label || ("Terlambat "+(a.punctuality_minutes||0)+" menit"))}</td></tr>`).join(""):`<tr><td colspan="4" class="muted">Belum ada karyawan terlambat hari ini.</td></tr>`;
 
   renderEmployees();
   renderFilterBranches();
   renderFilterEmployees();
+  renderWorkSettings();
   renderAttendance();
 }
 
 async function loadMyAttendance(){
   if(!currentUser) return;
+  const {data:ws}=await db.from("branch_work_settings").select("*");
+  workSettings=ws||[];
   const {data,error}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).order("date",{ascending:false}).order("created_at",{ascending:false});
   if(error){console.error(error);alert("Gagal mengambil riwayat absen");return;}
   myAttendance=data||[];
@@ -447,6 +520,41 @@ function renderFilterBranches(){
 
 function renderFilterEmployees(){
   filterEmployee.innerHTML = `<option value="all">Semua Karyawan</option>` + allEmployees.map(e=>`<option value="${e.id}">${e.name||'-'} - ${e.branch||'-'}</option>`).join("");
+}
+
+function renderWorkSettings(){
+  const branches=[...new Set(allEmployees.map(e=>(e.branch||"").trim()).filter(Boolean))].sort();
+  if(document.getElementById("workBranchSelect")){
+    workBranchSelect.innerHTML = branches.map(b=>`<option value="${b}">${b}</option>`).join("") || `<option value="">Belum ada cabang</option>`;
+    const first=workBranchSelect.value;
+    const st=getWorkSetting(first);
+    workStartTime.value=st.start_time||"07:45";
+    workLateTime.value=st.late_time||"08:00";
+    workBranchSelect.onchange=()=>{
+      const s=getWorkSetting(workBranchSelect.value);
+      workStartTime.value=s.start_time||"07:45";
+      workLateTime.value=s.late_time||"08:00";
+    };
+  }
+  if(document.getElementById("workSettingsTable")){
+    workSettingsTable.innerHTML = branches.map(b=>{
+      const st=getWorkSetting(b);
+      const saved=workSettings.some(x=>(x.branch||"").trim()===b);
+      return `<tr><td>${b}</td><td>${st.start_time||"07:45"}</td><td>${st.late_time||"08:00"}</td><td>${saved?"Tersimpan":"Default"}</td></tr>`;
+    }).join("") || `<tr><td colspan="4" class="muted">Belum ada cabang/gudang.</td></tr>`;
+  }
+}
+
+async function saveWorkSetting(){
+  const branch=(workBranchSelect.value||"").trim();
+  if(!branch)return alert("Pilih cabang/gudang dulu");
+  if(!workStartTime.value || !workLateTime.value)return alert("Jam masuk dan batas telat wajib diisi");
+  if(timeToMinutes(workLateTime.value) < timeToMinutes(workStartTime.value))return alert("Batas telat tidak boleh lebih awal dari jam masuk standar");
+  const payload={branch,start_time:workStartTime.value,late_time:workLateTime.value,updated_at:new Date().toISOString()};
+  const {error}=await db.from("branch_work_settings").upsert(payload,{onConflict:"branch"});
+  if(error){console.error(error);return alert("Gagal simpan jam kerja. Pastikan SQL tabel branch_work_settings sudah dijalankan.")}
+  alert("Jam kerja cabang berhasil disimpan");
+  await loadAdmin();
 }
 
 function editEmployee(e){
@@ -516,6 +624,7 @@ function getFilteredAttendance(){
   const start=filterStart?.value || "";
   const end=filterEnd?.value || "";
   const stat=filterStatus?.value || "all";
+  const punctuality=filterPunctuality?.value || "all";
   const branch=filterBranch?.value || "all";
   const emp=filterEmployee?.value || "all";
   return allAttendance.filter(a=>{
@@ -523,6 +632,7 @@ function getFilteredAttendance(){
     if(start && a.date < start) return false;
     if(end && a.date > end) return false;
     if(stat!=="all" && s!==stat) return false;
+    if(punctuality!=="all" && (a.punctuality_status||"")!==punctuality) return false;
     if(branch!=="all" && (a.branch||"")!==branch) return false;
     if(emp!=="all" && a.employee_id!==emp) return false;
     return true;
@@ -530,7 +640,7 @@ function getFilteredAttendance(){
 }
 
 function resetFilters(){
-  filterStart.value=""; filterEnd.value=""; filterStatus.value="all"; filterBranch.value="all"; filterEmployee.value="all";
+  filterStart.value=""; filterEnd.value=""; filterStatus.value="all"; if(document.getElementById("filterPunctuality"))filterPunctuality.value="all"; filterBranch.value="all"; filterEmployee.value="all";
   renderAttendance();
 }
 
@@ -539,9 +649,13 @@ function renderAttendance(){
   const hadir=data.filter(a=>(a.status||"hadir")!=="tidak_hadir").length;
   const tidak=data.filter(a=>a.status==="tidak_hadir").length;
   const lembur=data.filter(a=>a.overtime_start && a.overtime_end).length;
+  const telat=data.filter(a=>a.punctuality_status==="late").length;
+  const awal=data.filter(a=>a.punctuality_status==="early").length;
   sumPresent.innerText=hadir;
   sumAbsent.innerText=tidak;
   sumOvertime.innerText=lembur;
+  if(document.getElementById("sumLate"))sumLate.innerText=telat;
+  if(document.getElementById("sumEarly"))sumEarly.innerText=awal;
 
   attendanceTable.innerHTML=data.map(a=>`
     <tr>
@@ -549,6 +663,8 @@ function renderAttendance(){
       <td>${safe(a.branch)}</td>
       <td>${safe(a.date)}</td>
       <td>${statusBadge(a.status||"hadir")}</td>
+      <td>${punctualityBadge(a.punctuality_status,a.punctuality_label)}</td>
+      <td>${a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-"}</td>
       <td>${safe(a.check_in)}</td>
       <td>${safe(a.check_out)}</td>
       <td>${safe(a.absent_time)}</td>
@@ -572,6 +688,8 @@ function renderTodayAttendance(){
   }
   todayAttendanceBox.innerHTML=`
     <div class="today-item"><b>Status</b>${(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir"}</div>
+    <div class="today-item"><b>Status Waktu</b>${safe(a.punctuality_label)}</div>
+    <div class="today-item"><b>Selisih</b>${a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-"}</div>
     <div class="today-item"><b>Jam Masuk</b>${safe(a.check_in)}</div>
     <div class="today-item"><b>Jam Pulang</b>${safe(a.check_out)}</div>
     <div class="today-item"><b>Tidak Hadir</b>${safe(a.absent_time)}</div>
@@ -586,6 +704,8 @@ function renderMyAttendance(){
     <tr>
       <td>${safe(a.date)}</td>
       <td>${statusBadge(a.status||"hadir")}</td>
+      <td>${punctualityBadge(a.punctuality_status,a.punctuality_label)}</td>
+      <td>${a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-"}</td>
       <td>${safe(a.check_in)}</td>
       <td>${safe(a.check_out)}</td>
       <td>${safe(a.absent_time)}</td>
@@ -697,9 +817,12 @@ async function checkIn(){
     if(!photoUrl)return;
     const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
     if(exist)return alert("Kamu sudah punya data absen hari ini");
+    const jamMasuk=nowTime();
+    const p=calculatePunctuality(currentUser.branch,jamMasuk);
     const {error}=await db.from("attendances").insert({
       employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:"hadir",
-      check_in:nowTime(),latitude:loc.lat,longitude:loc.lng,check_in_photo:photoUrl,face_verified:true
+      check_in:jamMasuk,latitude:loc.lat,longitude:loc.lng,check_in_photo:photoUrl,face_verified:true,
+      punctuality_status:p.status,punctuality_minutes:p.minutes,punctuality_label:p.label
     });
     if(error){console.error(error);return alert("Gagal simpan absen. Pastikan SQL tambahan sudah dijalankan.")}
     alert("Absen masuk berhasil");
@@ -766,9 +889,12 @@ function buildPDF(){
   const branch=filterBranch?.value || "Semua Cabang / Gudang";
   const empText=filterEmployee?.value==="all" ? "Semua Karyawan" : (filterEmployee.options[filterEmployee.selectedIndex]?.text || "-");
   const statusText=filterStatus?.value==="all" ? "Semua Status" : (filterStatus.value==="hadir" ? "Hadir" : "Tidak Hadir");
+  const punctualityText=filterPunctuality?.value==="all" ? "Semua Waktu" : (filterPunctuality.value==="early"?"Lebih Awal":filterPunctuality.value==="late"?"Terlambat":"Tepat Waktu");
   const hadir=data.filter(a=>(a.status||"hadir")!=="tidak_hadir").length;
   const tidak=data.filter(a=>a.status==="tidak_hadir").length;
   const lembur=data.filter(a=>a.overtime_start && a.overtime_end).length;
+  const telat=data.filter(a=>a.punctuality_status==="late").length;
+  const awal=data.filter(a=>a.punctuality_status==="early").length;
 
   doc.setFontSize(18);
   doc.text("Laporan Absensi Fortuna Absen",14,15);
@@ -777,27 +903,32 @@ function buildPDF(){
   doc.text("Filter cabang/gudang: "+branch,14,29);
   doc.text("Filter karyawan: "+empText,14,35);
   doc.text("Filter status: "+statusText,14,41);
-  doc.text("Tanggal cetak: "+new Date().toLocaleString("id-ID"),14,47);
+  doc.text("Filter waktu: "+punctualityText,14,47);
+  doc.text("Tanggal cetak: "+new Date().toLocaleString("id-ID"),14,53);
 
-  doc.setFillColor(15,23,42); doc.roundedRect(14,54,55,16,3,3,"F");
-  doc.setFillColor(200,155,44); doc.roundedRect(74,54,55,16,3,3,"F");
-  doc.setFillColor(153,27,27); doc.roundedRect(134,54,65,16,3,3,"F");
-  doc.setTextColor(255,255,255); doc.setFontSize(9);
-  doc.text("TOTAL HADIR",18,60); doc.setFontSize(14); doc.text(String(hadir),18,67);
-  doc.setFontSize(9); doc.text("TOTAL LEMBUR",78,60); doc.setFontSize(14); doc.text(String(lembur),78,67);
-  doc.setFontSize(9); doc.text("TOTAL TIDAK HADIR",138,60); doc.setFontSize(14); doc.text(String(tidak),138,67);
+  doc.setFillColor(15,23,42); doc.roundedRect(14,60,48,16,3,3,"F");
+  doc.setFillColor(200,155,44); doc.roundedRect(67,60,48,16,3,3,"F");
+  doc.setFillColor(153,27,27); doc.roundedRect(120,60,56,16,3,3,"F");
+  doc.setFillColor(30,64,175); doc.roundedRect(181,60,50,16,3,3,"F");
+  doc.setFillColor(194,65,12); doc.roundedRect(236,60,45,16,3,3,"F");
+  doc.setTextColor(255,255,255); doc.setFontSize(8);
+  doc.text("TOTAL HADIR",18,66); doc.setFontSize(13); doc.text(String(hadir),18,73);
+  doc.setFontSize(8); doc.text("TOTAL LEMBUR",71,66); doc.setFontSize(13); doc.text(String(lembur),71,73);
+  doc.setFontSize(8); doc.text("TIDAK HADIR",124,66); doc.setFontSize(13); doc.text(String(tidak),124,73);
+  doc.setFontSize(8); doc.text("LEBIH AWAL",185,66); doc.setFontSize(13); doc.text(String(awal),185,73);
+  doc.setFontSize(8); doc.text("TERLAMBAT",240,66); doc.setFontSize(13); doc.text(String(telat),240,73);
   doc.setTextColor(0,0,0);
 
   const rows=data.map(a=>[
     safe(a.employee_name),safe(a.branch),safe(a.date),(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir",
-    safe(a.check_in),safe(a.check_out),safe(a.absent_time),safe(a.absent_note),
+    safe(a.punctuality_label),a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-",safe(a.check_in),safe(a.check_out),safe(a.absent_time),safe(a.absent_note),
     a.overtime_start&&a.overtime_end?`${a.overtime_start} - ${a.overtime_end}`:"-",
     safe(a.overtime_note),a.latitude&&a.longitude?`${a.latitude}, ${a.longitude}`:"-"
   ]);
 
   doc.autoTable({
-    startY:78,
-    head:[["Nama","Cabang/Gudang","Tanggal","Status","Masuk","Pulang","Tidak Hadir","Alasan","Lembur","Ket. Lembur","Lokasi"]],
+    startY:84,
+    head:[["Nama","Cabang/Gudang","Tanggal","Status","Status Waktu","Selisih","Masuk","Pulang","Tidak Hadir","Alasan","Lembur","Ket. Lembur","Lokasi"]],
     body:rows,
     styles:{fontSize:8,cellPadding:2},
     headStyles:{fillColor:[15,23,42]},
