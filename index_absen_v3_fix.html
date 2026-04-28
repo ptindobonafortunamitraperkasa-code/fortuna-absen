@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fortuna Absen - ABSEN V3 FIX</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Arial,sans-serif;background:#f4f7fb;color:#0f172a}
+.hidden{display:none!important}
+button{border:0;border-radius:12px;padding:11px 15px;font-weight:700;cursor:pointer;margin:4px}
+input,select,textarea{border:1px solid #dbe3ef;border-radius:12px;padding:12px;background:#fff;color:#0f172a;margin:5px;font-family:inherit}
+a{color:#2563eb;text-decoration:none;font-weight:700}
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#eef4ff,#ffffff)}
+.login-card{width:380px;background:#fff;padding:32px;border-radius:28px;box-shadow:0 25px 70px #1e293b25;border:1px solid #e5eaf3}
+.logo{font-size:28px;font-weight:900;color:#0f172a}
+.gold{color:#c89b2c}
+.primary{background:#0f172a;color:white}
+.goldbtn{background:#c89b2c;color:white}
+.danger{background:#fee2e2;color:#991b1b}
+.soft{background:#eef2ff;color:#1e3a8a}
+.success{background:#dcfce7;color:#166534}
+.app{display:flex;min-height:100vh}
+.sidebar{width:260px;background:#fff;border-right:1px solid #e5eaf3;padding:22px;position:fixed;height:100vh;overflow:auto}
+.side-title{font-size:22px;font-weight:900;margin-bottom:4px}
+.side-sub{font-size:12px;color:#64748b;margin-bottom:8px}
+.version{display:inline-block;background:#111827;color:#fff;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:900;margin:8px 0 18px}
+.nav button{width:100%;text-align:left;margin-bottom:8px;background:transparent;color:#334155}
+.nav button.active,.nav button:hover{background:#eef4ff;color:#1d4ed8}
+.main{margin-left:260px;width:calc(100% - 260px);padding:26px}
+.topbar{background:#fff;border:1px solid #e5eaf3;border-radius:24px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 10px 30px #1e293b0d}
+.card{background:#fff;border:1px solid #e5eaf3;border-radius:24px;padding:20px;margin-bottom:18px;box-shadow:0 10px 30px #1e293b0d}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.stat h1{margin:8px 0;font-size:34px}
+.stat p{color:#64748b;margin:0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:12px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:top}
+th{background:#f8fafc;color:#475569}
+video{max-width:100%;border-radius:18px;background:#0f172a}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800;display:inline-block}
+.ok{background:#dcfce7;color:#166534}
+.no{background:#fee2e2;color:#991b1b}
+.warn{background:#fef3c7;color:#92400e}
+.info{background:#dbeafe;color:#1e40af}
+.filterbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;align-items:end}
+.today-box{border:1px dashed #cbd5e1;background:#f8fafc;border-radius:18px;padding:16px}
+.toast{position:fixed;right:20px;bottom:20px;background:#0f172a;color:white;padding:14px 18px;border-radius:16px;box-shadow:0 20px 50px #0003;z-index:9999;font-weight:800}
+@media(max-width:800px){
+.sidebar{position:relative;width:100%;height:auto}
+.app{display:block}
+.main{margin-left:0;width:100%;padding:14px}
+.topbar{display:block}
+}
+</style>
+</head>
+
+<body>
+<div id="toast" class="toast hidden"></div>
+
+<div id="loginBox" class="login">
+  <div class="login-card">
+    <div class="logo">Fortuna <span class="gold">Absen</span></div>
+    <p style="color:#64748b">ABSEN V3 FIX - Smart attendance system</p>
+    <input id="pin" style="width:100%" placeholder="Masukkan PIN">
+    <button class="primary" style="width:100%;margin-top:10px" onclick="login()">Login</button>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="side-title">Fortuna <span class="gold">Absen</span></div>
+    <div class="side-sub">Corporate Attendance System</div>
+    <div class="version">ABSEN V3 FIX</div>
+
+    <div id="adminNav" class="nav hidden">
+      <button class="active" onclick="showPage('dashboardPage',this)">Dashboard</button>
+      <button onclick="showPage('employeePage',this)">Data Karyawan</button>
+      <button onclick="showPage('attendancePage',this)">Data Absen + Filter</button>
+      <button onclick="exportPDF()">Download PDF Rapi</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+
+    <div id="employeeNav" class="nav hidden">
+      <button class="active" onclick="showPage('employeeHomePage',this)">Absen Saya</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h2 id="welcome" style="margin:0"></h2>
+        <div style="color:#64748b;font-size:13px">Pantau absensi, wajah, lokasi, tidak hadir, dan lembur secara online.</div>
+      </div>
+      <button class="danger" onclick="logout()">Logout</button>
+    </div>
+
+    <section id="dashboardPage">
+      <div class="grid">
+        <div class="card stat"><p>Total Karyawan</p><h1 id="totalEmp">0</h1></div>
+        <div class="card stat"><p>Hadir Hari Ini</p><h1 id="totalToday">0</h1></div>
+        <div class="card stat"><p>Tidak Hadir Hari Ini</p><h1 id="totalAbsentToday">0</h1></div>
+        <div class="card stat"><p>Total Data Absen</p><h1 id="totalAbs">0</h1></div>
+      </div>
+    </section>
+
+    <section id="employeePage" class="hidden">
+      <div class="card">
+        <h2>Tambah / Edit Karyawan</h2>
+        <input type="hidden" id="editId">
+        <div class="form-grid">
+          <input id="empName" placeholder="Nama">
+          <input id="empPhone" placeholder="No HP">
+          <input id="empBranch" placeholder="Cabang">
+          <input id="empPosition" placeholder="Jabatan">
+          <input id="empPin" placeholder="PIN">
+          <select id="empRole"><option value="employee">Employee</option><option value="admin">Admin</option></select>
+        </div>
+        <button class="goldbtn" onclick="saveEmployee()">Simpan</button>
+        <button class="soft" onclick="resetEmployeeForm()">Reset</button>
+      </div>
+      <div class="card">
+        <h2>Data Karyawan</h2>
+        <table><thead><tr><th>Nama</th><th>HP</th><th>Cabang</th><th>Jabatan</th><th>PIN</th><th>Role</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="employeeTable"></tbody></table>
+      </div>
+    </section>
+
+    <section id="attendancePage" class="hidden">
+      <div class="card">
+        <h2>Filter Data Absen</h2>
+        <div class="filterbar">
+          <div><label>Dari Tanggal</label><input id="filterStart" type="date" style="width:100%"></div>
+          <div><label>Sampai Tanggal</label><input id="filterEnd" type="date" style="width:100%"></div>
+          <div><label>Karyawan</label><select id="filterEmployee" style="width:100%"><option value="">Semua Karyawan</option></select></div>
+          <div><label>Status</label><select id="filterStatus" style="width:100%"><option value="">Semua Status</option><option value="hadir">Hadir</option><option value="tidak_hadir">Tidak Hadir</option></select></div>
+          <button class="primary" onclick="applyAttendanceFilter()">Terapkan Filter</button>
+          <button class="soft" onclick="resetAttendanceFilter()">Reset</button>
+          <button class="goldbtn" onclick="exportPDF()">Export PDF</button>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card stat"><p>Total Hadir Filter</p><h1 id="sumHadir">0</h1></div>
+        <div class="card stat"><p>Total Tidak Hadir Filter</p><h1 id="sumTidakHadir">0</h1></div>
+        <div class="card stat"><p>Total Lembur Filter</p><h1 id="sumLembur">0</h1></div>
+      </div>
+      <div class="card">
+        <h2>Data Absen</h2>
+        <table><thead><tr><th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Tidak Hadir</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Face</th></tr></thead><tbody id="attendanceTable"></tbody></table>
+      </div>
+    </section>
+
+    <section id="employeeHomePage" class="hidden">
+      <div class="card">
+        <h2>Absen Saya - ABSEN V3 FIX</h2>
+        <p style="color:#64748b;margin-top:0">Karyawan wajib mengizinkan akses lokasi. Kalau GPS/lokasi tidak aktif, absen tidak bisa disimpan.</p>
+        <video id="video" width="320" height="240" autoplay muted playsinline></video><br>
+        <button class="soft" onclick="startCamera()">Buka Kamera</button>
+        <button class="goldbtn" onclick="registerFace()">Daftarkan Wajah</button>
+        <button class="primary" onclick="checkIn()">Absen Masuk</button>
+        <button class="primary" onclick="checkOut()">Absen Pulang</button>
+        <button class="danger" onclick="openAbsentBox()">Absen Tidak Hadir</button>
+        <div id="absentBox" class="today-box hidden" style="margin-top:12px">
+          <h3>Alasan Tidak Hadir</h3>
+          <select id="absentReason" style="width:100%;max-width:360px">
+            <option value="Sakit">Sakit</option>
+            <option value="Izin">Izin</option>
+            <option value="Keperluan keluarga">Keperluan keluarga</option>
+            <option value="Lainnya">Lainnya</option>
+          </select><br>
+          <textarea id="absentNote" rows="3" style="width:100%;max-width:520px" placeholder="Keterangan tambahan wajib diisi"></textarea><br>
+          <button class="danger" onclick="saveAbsent()">Simpan Tidak Hadir</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Hasil Absen Hari Ini</h2>
+        <div id="todayAttendanceBox" class="today-box">Belum ada data absen hari ini.</div>
+      </div>
+
+      <div class="card">
+        <h2>Lembur</h2>
+        <input id="otStart" type="time"><input id="otEnd" type="time"><input id="otNote" placeholder="Keterangan lembur">
+        <button class="goldbtn" onclick="saveOvertime()">Simpan Lembur</button>
+      </div>
+
+      <div class="card">
+        <h2>Riwayat Absen Saya</h2>
+        <table><thead><tr><th>Tanggal</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Tidak Hadir</th><th>Lembur</th><th>Keterangan</th><th>Lokasi</th></tr></thead><tbody id="myAttendanceTable"></tbody></table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqXEXs9gMw";
+// fallback ke key lama kalau key di atas typo saat copy dari chat
+const SUPABASE_KEY_REAL = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
+const db = supabase.createClient(SUPABASE_URL, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw");
+let currentUser=null, stream=null, allAttendance=[], filteredAttendance=[], allEmployees=[], modelsReady=false;
+
+function toast(msg){const t=document.getElementById('toast');t.innerText=msg;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3000)}
+function today(){return new Date().toISOString().slice(0,10)}
+function nowTime(){return new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+function logout(){location.reload()}
+function safe(v){return v===null||v===undefined||v===''?'-':v}
+
+async function loadModels(){try{const MODEL_URL="https://justadudewhohacks.github.io/face-api.js/models";await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);modelsReady=true;console.log('Model wajah berhasil load')}catch(e){console.error(e);alert('Model wajah gagal load')}}
+loadModels();
+
+function showPage(id,btn){['dashboardPage','employeePage','attendancePage','employeeHomePage'].forEach(x=>{const el=document.getElementById(x);if(el)el.classList.add('hidden')});document.getElementById(id).classList.remove('hidden');if(btn){document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));btn.classList.add('active')}}
+
+async function login(){const pinInput=document.getElementById('pin').value.trim();if(!pinInput)return alert('PIN wajib diisi');const {data,error}=await db.from('employees').select('*').eq('pin',pinInput).maybeSingle();if(error){console.error('LOGIN ERROR:',error);return alert('Database error saat login')}if(!data)return alert('PIN tidak ditemukan');if(data.is_active===false)return alert('Akun ini nonaktif');currentUser=data;loginBox.classList.add('hidden');app.classList.remove('hidden');welcome.innerText='Halo, '+data.name;if(data.role==='admin'){adminNav.classList.remove('hidden');employeeNav.classList.add('hidden');showPage('dashboardPage');await loadAdmin()}else{employeeNav.classList.remove('hidden');adminNav.classList.add('hidden');showPage('employeeHomePage');await loadMyAttendance()}}
+
+async function loadAdmin(){const {data:emp}=await db.from('employees').select('*').order('created_at',{ascending:false});const {data:abs}=await db.from('attendances').select('*').order('created_at',{ascending:false});allEmployees=emp||[];allAttendance=abs||[];filteredAttendance=[...allAttendance];totalEmp.innerText=allEmployees.filter(e=>e.is_active).length;totalToday.innerText=allAttendance.filter(a=>a.date===today()&&(a.status||'hadir')==='hadir').length;totalAbsentToday.innerText=allAttendance.filter(a=>a.date===today()&&a.status==='tidak_hadir').length;totalAbs.innerText=allAttendance.length;renderEmployees();renderFilterEmployeeOptions();renderAttendance()}
+
+function renderFilterEmployeeOptions(){filterEmployee.innerHTML='<option value="">Semua Karyawan</option>'+allEmployees.map(e=>`<option value="${e.id}">${e.name||'-'}</option>`).join('')}
+function getFilteredAttendance(){const s=filterStart.value,e=filterEnd.value,emp=filterEmployee.value,st=filterStatus.value;return allAttendance.filter(a=>{if(s&&a.date<s)return false;if(e&&a.date>e)return false;if(emp&&a.employee_id!==emp)return false;if(st&&((a.status||'hadir')!==st))return false;return true})}
+function applyAttendanceFilter(){filteredAttendance=getFilteredAttendance();renderAttendance();toast('Filter diterapkan')}
+function resetAttendanceFilter(){filterStart.value='';filterEnd.value='';filterEmployee.value='';filterStatus.value='';filteredAttendance=[...allAttendance];renderAttendance();toast('Filter direset')}
+
+function renderEmployees(){employeeTable.innerHTML=allEmployees.map(e=>`<tr><td>${safe(e.name)}</td><td>${safe(e.phone)}</td><td>${safe(e.branch)}</td><td>${safe(e.position)}</td><td>${safe(e.pin)}</td><td>${safe(e.role||'employee')}</td><td><span class="badge ${e.is_active?'ok':'no'}">${e.is_active?'Aktif':'Nonaktif'}</span></td><td><button class="soft" onclick='editEmployee(${JSON.stringify(e)})'>Edit</button><button class="danger" onclick="toggleEmployee('${e.id}',${e.is_active})">${e.is_active?'Nonaktifkan':'Aktifkan'}</button></td></tr>`).join('')}
+function editEmployee(e){showPage('employeePage');editId.value=e.id;empName.value=e.name||'';empPhone.value=e.phone||'';empBranch.value=e.branch||'';empPosition.value=e.position||'';empPin.value=e.pin||'';empRole.value=e.role||'employee';window.scrollTo(0,0)}
+function resetEmployeeForm(){editId.value='';empName.value='';empPhone.value='';empBranch.value='';empPosition.value='';empPin.value='';empRole.value='employee'}
+async function saveEmployee(){if(!empName.value||!empPin.value)return alert('Nama dan PIN wajib diisi');const payload={name:empName.value,phone:empPhone.value,branch:empBranch.value,position:empPosition.value,pin:empPin.value,role:empRole.value,is_active:true};let error;if(editId.value){({error}=await db.from('employees').update(payload).eq('id',editId.value))}else{({error}=await db.from('employees').insert(payload))}if(error){console.error(error);return alert('Gagal simpan. PIN mungkin sudah dipakai.')}alert('Data karyawan berhasil disimpan');resetEmployeeForm();loadAdmin()}
+async function toggleEmployee(id,status){const {error}=await db.from('employees').update({is_active:!status}).eq('id',id);if(error){console.error(error);return alert('Gagal ubah status')}loadAdmin()}
+
+function renderAttendance(){const data=filteredAttendance.length||filterStart.value||filterEnd.value||filterEmployee.value||filterStatus.value?filteredAttendance:allAttendance;sumHadir.innerText=data.filter(a=>(a.status||'hadir')==='hadir').length;sumTidakHadir.innerText=data.filter(a=>a.status==='tidak_hadir').length;sumLembur.innerText=data.filter(a=>a.overtime_start&&a.overtime_end).length;attendanceTable.innerHTML=data.map(a=>{const status=a.status||'hadir';return `<tr><td>${safe(a.employee_name)}</td><td>${safe(a.branch)}</td><td>${safe(a.date)}</td><td><span class="badge ${status==='tidak_hadir'?'no':'ok'}">${status==='tidak_hadir'?'Tidak Hadir':'Hadir'}</span></td><td>${safe(a.check_in)}</td><td>${safe(a.check_out)}</td><td>${a.absent_time?`${a.absent_time}<br>${safe(a.absent_note)}`:'-'}</td><td>${a.check_in_photo?`<a href="${a.check_in_photo}" target="_blank">Foto Masuk</a>`:'-'}${a.check_out_photo?`<br><a href="${a.check_out_photo}" target="_blank">Foto Pulang</a>`:''}</td><td>${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Lihat Lokasi</a>`:'-'}</td><td>${a.overtime_start&&a.overtime_end?a.overtime_start+' - '+a.overtime_end:'-'}</td><td>${a.face_verified?'✔':'✖'}</td></tr>`}).join('')}
+
+async function startCamera(){try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;toast('Kamera berhasil dibuka')}catch(e){console.error(e);alert('Kamera gagal dibuka')}}
+async function getFaceDescriptor(){if(!modelsReady){alert('Model wajah masih loading');return null}if(!video.srcObject){alert('Buka kamera dulu');return null}const detection=await faceapi.detectSingleFace(video,new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();if(!detection){alert('Wajah tidak terdeteksi');return null}return Array.from(detection.descriptor)}
+async function registerFace(){const desc=await getFaceDescriptor();if(!desc)return;const {error}=await db.from('employees').update({face_descriptor:desc}).eq('id',currentUser.id);if(error){console.error(error);return alert('Gagal simpan wajah')}currentUser.face_descriptor=desc;alert('Wajah berhasil didaftarkan')}
+function distance(a,b){let sum=0;for(let i=0;i<a.length;i++)sum+=(a[i]-b[i])*(a[i]-b[i]);return Math.sqrt(sum)}
+async function verifyFace(){const live=await getFaceDescriptor();if(!live)return false;if(!currentUser.face_descriptor){alert('Wajah belum didaftarkan');return false}return distance(live,currentUser.face_descriptor)<0.55}
+
+async function getRequiredLocation(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('Browser tidak support lokasi'));navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),err=>reject(err),{enableHighAccuracy:true,timeout:15000,maximumAge:0})})}
+async function captureAndUploadPhoto(type){const canvas=document.createElement('canvas');canvas.width=video.videoWidth||320;canvas.height=video.videoHeight||240;canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);const blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',0.8));const fileName=`${currentUser.id}/${today()}-${type}-${Date.now()}.jpg`;const {error}=await db.storage.from('attendance-photos').upload(fileName,blob,{contentType:'image/jpeg',upsert:true});if(error){console.error(error);alert('Gagal upload foto');return null}const {data}=db.storage.from('attendance-photos').getPublicUrl(fileName);return data.publicUrl}
+
+async function checkIn(){try{alert('Mulai absen masuk. Izinkan lokasi/GPS.');const loc=await getRequiredLocation();const ok=await verifyFace();if(!ok)return alert('Wajah tidak cocok');const {data:exist}=await db.from('attendances').select('*').eq('employee_id',currentUser.id).eq('date',today()).maybeSingle();if(exist)return alert('Sudah ada data absen hari ini');const photoUrl=await captureAndUploadPhoto('masuk');const {error}=await db.from('attendances').insert({employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:'hadir',check_in:nowTime(),latitude:loc.lat,longitude:loc.lng,check_in_photo:photoUrl,face_verified:true});if(error){console.error(error);return alert('Gagal simpan absen. Pastikan SQL kolom status sudah dijalankan.')}alert('Absen masuk berhasil');await loadMyAttendance()}catch(e){console.error(e);alert('Absen gagal. Aktifkan GPS/lokasi dan izinkan akses lokasi ke web ini.')}}
+async function checkOut(){try{alert('Mulai absen pulang. Izinkan lokasi/GPS.');await getRequiredLocation();const ok=await verifyFace();if(!ok)return alert('Wajah tidak cocok');const photoUrl=await captureAndUploadPhoto('pulang');const {data:exist}=await db.from('attendances').select('*').eq('employee_id',currentUser.id).eq('date',today()).maybeSingle();if(!exist)return alert('Belum absen masuk');if(exist.status==='tidak_hadir')return alert('Hari ini sudah tercatat Tidak Hadir');const {error}=await db.from('attendances').update({check_out:nowTime(),check_out_photo:photoUrl}).eq('id',exist.id);if(error){console.error(error);return alert('Gagal simpan pulang')}alert('Absen pulang berhasil');await loadMyAttendance()}catch(e){console.error(e);alert('Absen pulang gagal. Aktifkan GPS/lokasi dan izinkan akses lokasi ke web ini.')}}
+function openAbsentBox(){absentBox.classList.toggle('hidden')}
+async function saveAbsent(){try{const note=(absentReason.value+' - '+absentNote.value.trim()).trim();if(absentNote.value.trim().length<3)return alert('Keterangan tidak hadir wajib diisi');const loc=await getRequiredLocation();const {data:exist}=await db.from('attendances').select('*').eq('employee_id',currentUser.id).eq('date',today()).maybeSingle();if(exist)return alert('Sudah ada data absen hari ini');const {error}=await db.from('attendances').insert({employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:'tidak_hadir',absent_time:nowTime(),absent_note:note,latitude:loc.lat,longitude:loc.lng,face_verified:false});if(error){console.error(error);return alert('Gagal simpan tidak hadir. Pastikan SQL kolom status, absent_note, absent_time sudah dijalankan.')}alert('Data tidak hadir berhasil disimpan');absentNote.value='';absentBox.classList.add('hidden');await loadMyAttendance()}catch(e){console.error(e);alert('Tidak bisa simpan. Aktifkan GPS/lokasi dan izinkan akses lokasi ke web ini.')}}
+
+async function saveOvertime(){const {data:exist}=await db.from('attendances').select('*').eq('employee_id',currentUser.id).eq('date',today()).maybeSingle();if(!exist)return alert('Absen masuk dulu');if(exist.status==='tidak_hadir')return alert('Status tidak hadir tidak bisa input lembur');const {error}=await db.from('attendances').update({overtime_start:otStart.value,overtime_end:otEnd.value,overtime_note:otNote.value}).eq('id',exist.id);if(error){console.error(error);return alert('Gagal simpan lembur')}alert('Lembur disimpan');await loadMyAttendance()}
+
+async function loadMyAttendance(){const {data,error}=await db.from('attendances').select('*').eq('employee_id',currentUser.id).order('date',{ascending:false}).limit(60);if(error){console.error(error);return}const rows=data||[];renderMyAttendance(rows);renderTodayAttendance(rows.find(a=>a.date===today()))}
+function renderTodayAttendance(a){if(!a){todayAttendanceBox.innerHTML='Belum ada data absen hari ini.';return}const status=a.status||'hadir';todayAttendanceBox.innerHTML=`<b>Status:</b> <span class="badge ${status==='tidak_hadir'?'no':'ok'}">${status==='tidak_hadir'?'Tidak Hadir':'Hadir'}</span><br><b>Tanggal:</b> ${safe(a.date)}<br><b>Jam Masuk:</b> ${safe(a.check_in)}<br><b>Jam Pulang:</b> ${safe(a.check_out)}<br><b>Jam Tidak Hadir:</b> ${safe(a.absent_time)}<br><b>Keterangan:</b> ${safe(a.absent_note||a.overtime_note)}<br><b>Lembur:</b> ${a.overtime_start&&a.overtime_end?a.overtime_start+' - '+a.overtime_end:'-'}<br><b>Lokasi:</b> ${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Lihat Lokasi</a>`:'-'}`}
+function renderMyAttendance(rows){myAttendanceTable.innerHTML=rows.map(a=>{const status=a.status||'hadir';return `<tr><td>${safe(a.date)}</td><td><span class="badge ${status==='tidak_hadir'?'no':'ok'}">${status==='tidak_hadir'?'Tidak Hadir':'Hadir'}</span></td><td>${safe(a.check_in)}</td><td>${safe(a.check_out)}</td><td>${safe(a.absent_time)}</td><td>${a.overtime_start&&a.overtime_end?a.overtime_start+' - '+a.overtime_end:'-'}</td><td>${safe(a.absent_note||a.overtime_note)}</td><td>${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Lokasi</a>`:'-'}</td></tr>`}).join('')}
+
+function exportPDF(){const data=filteredAttendance.length||filterStart.value||filterEnd.value||filterEmployee.value||filterStatus.value?filteredAttendance:allAttendance;const {jsPDF}=window.jspdf;const doc=new jsPDF('landscape');const periode=(filterStart.value||'Awal')+' s/d '+(filterEnd.value||'Akhir');const totalHadir=data.filter(a=>(a.status||'hadir')==='hadir').length;const totalTidak=data.filter(a=>a.status==='tidak_hadir').length;const totalLembur=data.filter(a=>a.overtime_start&&a.overtime_end).length;doc.setFontSize(16);doc.text('Laporan Absensi Fortuna Absen',14,15);doc.setFontSize(10);doc.text('Periode laporan: '+periode,14,22);doc.text('Tanggal cetak: '+new Date().toLocaleString('id-ID'),14,28);doc.text('Total Hadir: '+totalHadir+'   |   Total Tidak Hadir: '+totalTidak+'   |   Total Lembur: '+totalLembur,14,34);const rows=data.map(a=>[a.employee_name||'',a.branch||'',a.date||'',(a.status||'hadir')==='tidak_hadir'?'Tidak Hadir':'Hadir',a.check_in||'-',a.check_out||'-',a.absent_time||'-',a.absent_note||'-',a.overtime_start&&a.overtime_end?`${a.overtime_start} - ${a.overtime_end}`:'-',a.overtime_note||'-',a.latitude&&a.longitude?`${a.latitude}, ${a.longitude}`:'-']);doc.autoTable({startY:42,head:[["Nama","Cabang","Tanggal","Status","Masuk","Pulang","Jam TH","Ket. Tidak Hadir","Lembur","Ket. Lembur","Lokasi"]],body:rows,styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[15,23,42]},alternateRowStyles:{fillColor:[248,250,252]}});doc.save('laporan_absensi_fortuna_filter.pdf')}
+</script>
+</body>
+</html>
