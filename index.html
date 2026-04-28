@@ -58,6 +58,11 @@ video{max-width:100%;border-radius:18px;background:#0f172a}
 .today-item{background:#f8fafc;border:1px solid #e5eaf3;border-radius:16px;padding:14px}
 .today-item b{display:block;font-size:12px;color:#64748b;margin-bottom:5px}
 .notice{padding:12px 14px;border-radius:16px;background:#fff7ed;color:#9a3412;font-weight:700;margin:10px 0}
+.preview-wrap{position:fixed;inset:0;background:#0f172acc;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
+.preview-box{width:min(1100px,96vw);height:min(760px,92vh);background:#fff;border-radius:22px;box-shadow:0 30px 90px #0005;display:flex;flex-direction:column;overflow:hidden}
+.preview-head{padding:14px 18px;border-bottom:1px solid #e5eaf3;display:flex;justify-content:space-between;align-items:center}
+.preview-head h3{margin:0}
+#pdfPreviewFrame{width:100%;height:100%;border:0;background:#f8fafc}
 @media(max-width:800px){
 .sidebar{position:relative;width:100%;height:auto}
 .app{display:block}
@@ -80,18 +85,31 @@ input,select{width:100%}
   </div>
 </div>
 
+<div id="pdfPreviewModal" class="preview-wrap hidden">
+  <div class="preview-box">
+    <div class="preview-head">
+      <h3>Preview Laporan PDF</h3>
+      <div>
+        <button class="goldbtn" onclick="exportPDF('download')">Download PDF</button>
+        <button class="danger" onclick="closePDFPreview()">Tutup</button>
+      </div>
+    </div>
+    <iframe id="pdfPreviewFrame"></iframe>
+  </div>
+</div>
+
 <div id="app" class="app hidden">
 
   <aside class="sidebar">
     <div class="side-title">Fortuna <span class="gold">Absen</span></div>
     <div class="side-sub">Corporate Attendance System</div>
-    <div class="version">VERSI FINAL ABSEN + RIWAYAT + PDF</div>
+    <div class="version">VERSI FINAL + FILTER CABANG + PREVIEW PDF</div>
 
     <div id="adminNav" class="nav hidden">
       <button class="active" onclick="showPage('dashboardPage',this)">Dashboard</button>
       <button onclick="showPage('employeePage',this)">Data Karyawan</button>
       <button onclick="showPage('attendancePage',this)">Data Absen & Export</button>
-      <button onclick="exportPDF()">Download PDF</button>
+      <button onclick="exportPDF('download')">Download PDF</button>
       <button onclick="logout()">Logout</button>
     </div>
 
@@ -162,11 +180,15 @@ input,select{width:100%}
             <option value="hadir">Hadir</option>
             <option value="tidak_hadir">Tidak Hadir</option>
           </select>
+          <select id="filterBranch" onchange="renderAttendance()">
+            <option value="all">Semua Cabang / Gudang</option>
+          </select>
           <select id="filterEmployee" onchange="renderAttendance()">
             <option value="all">Semua Karyawan</option>
           </select>
           <button class="soft" onclick="resetFilters()">Reset Filter</button>
-          <button class="goldbtn" onclick="exportPDF()">Export PDF Sesuai Filter</button>
+          <button class="primary" onclick="previewPDF()">Preview PDF</button>
+          <button class="goldbtn" onclick="exportPDF('download')">Export PDF Sesuai Filter</button>
         </div>
       </div>
 
@@ -250,7 +272,8 @@ input,select{width:100%}
 
 <script>
 const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser=null, stream=null, allAttendance=[], allEmployees=[], myAttendance=[], modelsReady=false;
 
@@ -325,6 +348,7 @@ async function loadAdmin(){
   totalAbs.innerText=allAttendance.length;
 
   renderEmployees();
+  renderFilterBranches();
   renderFilterEmployees();
   renderAttendance();
 }
@@ -354,6 +378,11 @@ function renderEmployees(){
       </td>
     </tr>
   `).join("");
+}
+
+function renderFilterBranches(){
+  const branches=[...new Set(allEmployees.map(e=>(e.branch||"").trim()).filter(Boolean))].sort();
+  filterBranch.innerHTML = `<option value="all">Semua Cabang / Gudang</option>` + branches.map(b=>`<option value="${b}">${b}</option>`).join("");
 }
 
 function renderFilterEmployees(){
@@ -398,19 +427,21 @@ function getFilteredAttendance(){
   const start=filterStart?.value || "";
   const end=filterEnd?.value || "";
   const stat=filterStatus?.value || "all";
+  const branch=filterBranch?.value || "all";
   const emp=filterEmployee?.value || "all";
   return allAttendance.filter(a=>{
     const s=a.status||"hadir";
     if(start && a.date < start) return false;
     if(end && a.date > end) return false;
     if(stat!=="all" && s!==stat) return false;
+    if(branch!=="all" && (a.branch||"")!==branch) return false;
     if(emp!=="all" && a.employee_id!==emp) return false;
     return true;
   });
 }
 
 function resetFilters(){
-  filterStart.value=""; filterEnd.value=""; filterStatus.value="all"; filterEmployee.value="all";
+  filterStart.value=""; filterEnd.value=""; filterStatus.value="all"; filterBranch.value="all"; filterEmployee.value="all";
   renderAttendance();
 }
 
@@ -605,12 +636,15 @@ async function saveOvertime(){
   await loadMyAttendance();
 }
 
-function exportPDF(){
+function buildPDF(){
   const data=getFilteredAttendance();
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF("landscape");
   const start=filterStart?.value || "Semua";
   const end=filterEnd?.value || "Semua";
+  const branch=filterBranch?.value || "Semua Cabang / Gudang";
+  const empText=filterEmployee?.value==="all" ? "Semua Karyawan" : (filterEmployee.options[filterEmployee.selectedIndex]?.text || "-");
+  const statusText=filterStatus?.value==="all" ? "Semua Status" : (filterStatus.value==="hadir" ? "Hadir" : "Tidak Hadir");
   const hadir=data.filter(a=>(a.status||"hadir")!=="tidak_hadir").length;
   const tidak=data.filter(a=>a.status==="tidak_hadir").length;
   const lembur=data.filter(a=>a.overtime_start && a.overtime_end).length;
@@ -619,15 +653,18 @@ function exportPDF(){
   doc.text("Laporan Absensi Fortuna Absen",14,15);
   doc.setFontSize(10);
   doc.text("Periode laporan: "+start+" sampai "+end,14,23);
-  doc.text("Tanggal cetak: "+new Date().toLocaleString("id-ID"),14,29);
+  doc.text("Filter cabang/gudang: "+branch,14,29);
+  doc.text("Filter karyawan: "+empText,14,35);
+  doc.text("Filter status: "+statusText,14,41);
+  doc.text("Tanggal cetak: "+new Date().toLocaleString("id-ID"),14,47);
 
-  doc.setFillColor(15,23,42); doc.roundedRect(14,36,55,16,3,3,"F");
-  doc.setFillColor(200,155,44); doc.roundedRect(74,36,55,16,3,3,"F");
-  doc.setFillColor(153,27,27); doc.roundedRect(134,36,65,16,3,3,"F");
+  doc.setFillColor(15,23,42); doc.roundedRect(14,54,55,16,3,3,"F");
+  doc.setFillColor(200,155,44); doc.roundedRect(74,54,55,16,3,3,"F");
+  doc.setFillColor(153,27,27); doc.roundedRect(134,54,65,16,3,3,"F");
   doc.setTextColor(255,255,255); doc.setFontSize(9);
-  doc.text("TOTAL HADIR",18,42); doc.setFontSize(14); doc.text(String(hadir),18,49);
-  doc.setFontSize(9); doc.text("TOTAL LEMBUR",78,42); doc.setFontSize(14); doc.text(String(lembur),78,49);
-  doc.setFontSize(9); doc.text("TOTAL TIDAK HADIR",138,42); doc.setFontSize(14); doc.text(String(tidak),138,49);
+  doc.text("TOTAL HADIR",18,60); doc.setFontSize(14); doc.text(String(hadir),18,67);
+  doc.setFontSize(9); doc.text("TOTAL LEMBUR",78,60); doc.setFontSize(14); doc.text(String(lembur),78,67);
+  doc.setFontSize(9); doc.text("TOTAL TIDAK HADIR",138,60); doc.setFontSize(14); doc.text(String(tidak),138,67);
   doc.setTextColor(0,0,0);
 
   const rows=data.map(a=>[
@@ -638,14 +675,34 @@ function exportPDF(){
   ]);
 
   doc.autoTable({
-    startY:60,
-    head:[["Nama","Cabang","Tanggal","Status","Masuk","Pulang","Tidak Hadir","Alasan","Lembur","Ket. Lembur","Lokasi"]],
+    startY:78,
+    head:[["Nama","Cabang/Gudang","Tanggal","Status","Masuk","Pulang","Tidak Hadir","Alasan","Lembur","Ket. Lembur","Lokasi"]],
     body:rows,
     styles:{fontSize:8,cellPadding:2},
     headStyles:{fillColor:[15,23,42]},
     alternateRowStyles:{fillColor:[248,250,252]}
   });
+  return doc;
+}
+
+function exportPDF(mode="download"){
+  const doc=buildPDF();
+  if(mode==="preview"){
+    const blobUrl=doc.output("bloburl");
+    pdfPreviewFrame.src=blobUrl;
+    pdfPreviewModal.classList.remove("hidden");
+    return;
+  }
   doc.save("laporan_absensi_fortuna_filter.pdf");
+}
+
+function previewPDF(){
+  exportPDF("preview");
+}
+
+function closePDFPreview(){
+  pdfPreviewModal.classList.add("hidden");
+  pdfPreviewFrame.src="";
 }
 </script>
 </body>
