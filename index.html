@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Fortuna Absen</title>
+<title>Fortuna Absen - FINAL</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -14,8 +14,8 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,Arial,sans-serif;background:#f4f7fb;color:#0f172a}
 .hidden{display:none!important}
-button{border:0;border-radius:12px;padding:11px 15px;font-weight:700;cursor:pointer}
-input,select{border:1px solid #dbe3ef;border-radius:12px;padding:12px;background:#fff;color:#0f172a;margin:5px}
+button{border:0;border-radius:12px;padding:11px 15px;font-weight:800;cursor:pointer;margin:4px}
+input,select{border:1px solid #dbe3ef;border-radius:12px;padding:12px;background:#fff;color:#0f172a;margin:5px;min-height:44px}
 a{color:#2563eb;text-decoration:none;font-weight:700}
 .login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#eef4ff,#ffffff)}
 .login-card{width:380px;background:#fff;padding:32px;border-radius:28px;box-shadow:0 25px 70px #1e293b25;border:1px solid #e5eaf3}
@@ -25,31 +25,46 @@ a{color:#2563eb;text-decoration:none;font-weight:700}
 .goldbtn{background:#c89b2c;color:white}
 .danger{background:#fee2e2;color:#991b1b}
 .soft{background:#eef2ff;color:#1e3a8a}
+.green{background:#dcfce7;color:#166534}
+.orange{background:#ffedd5;color:#9a3412}
 .app{display:flex;min-height:100vh}
-.sidebar{width:260px;background:#fff;border-right:1px solid #e5eaf3;padding:22px;position:fixed;height:100vh}
+.sidebar{width:270px;background:#fff;border-right:1px solid #e5eaf3;padding:22px;position:fixed;height:100vh;overflow:auto}
 .side-title{font-size:22px;font-weight:900;margin-bottom:4px}
-.side-sub{font-size:12px;color:#64748b;margin-bottom:25px}
+.side-sub{font-size:12px;color:#64748b;margin-bottom:12px}
+.version{font-size:11px;background:#0f172a;color:white;padding:7px 9px;border-radius:999px;display:inline-block;margin-bottom:18px;font-weight:800}
 .nav button{width:100%;text-align:left;margin-bottom:8px;background:transparent;color:#334155}
 .nav button.active,.nav button:hover{background:#eef4ff;color:#1d4ed8}
-.main{margin-left:260px;width:calc(100% - 260px);padding:26px}
+.main{margin-left:270px;width:calc(100% - 270px);padding:26px}
 .topbar{background:#fff;border:1px solid #e5eaf3;border-radius:24px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 10px 30px #1e293b0d}
 .card{background:#fff;border:1px solid #e5eaf3;border-radius:24px;padding:20px;margin-bottom:18px;box-shadow:0 10px 30px #1e293b0d}
+.card-dark{background:linear-gradient(135deg,#0f172a,#1e293b);color:white;border:0}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
 .stat h1{margin:8px 0;font-size:34px}
 .stat p{color:#64748b;margin:0}
+.card-dark p{color:#cbd5e1}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:12px;border-bottom:1px solid #edf2f7;text-align:left}
+th,td{padding:12px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:top}
 th{background:#f8fafc;color:#475569}
 video{max-width:100%;border-radius:18px;background:#0f172a}
-.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
-.badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:center}
+.badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800;display:inline-block}
 .ok{background:#dcfce7;color:#166534}
 .no{background:#fee2e2;color:#991b1b}
+.warn{background:#ffedd5;color:#9a3412}
+.info{background:#dbeafe;color:#1e40af}
+.muted{color:#64748b;font-size:13px}
+.scroll{overflow:auto}
+.today-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:12px}
+.today-item{background:#f8fafc;border:1px solid #e5eaf3;border-radius:16px;padding:14px}
+.today-item b{display:block;font-size:12px;color:#64748b;margin-bottom:5px}
+.notice{padding:12px 14px;border-radius:16px;background:#fff7ed;color:#9a3412;font-weight:700;margin:10px 0}
 @media(max-width:800px){
 .sidebar{position:relative;width:100%;height:auto}
 .app{display:block}
 .main{margin-left:0;width:100%;padding:14px}
 .topbar{display:block}
+button{width:100%;margin:5px 0}
+input,select{width:100%}
 }
 </style>
 </head>
@@ -70,11 +85,12 @@ video{max-width:100%;border-radius:18px;background:#0f172a}
   <aside class="sidebar">
     <div class="side-title">Fortuna <span class="gold">Absen</span></div>
     <div class="side-sub">Corporate Attendance System</div>
+    <div class="version">VERSI FINAL ABSEN + RIWAYAT + PDF</div>
 
     <div id="adminNav" class="nav hidden">
       <button class="active" onclick="showPage('dashboardPage',this)">Dashboard</button>
       <button onclick="showPage('employeePage',this)">Data Karyawan</button>
-      <button onclick="showPage('attendancePage',this)">Data Absen</button>
+      <button onclick="showPage('attendancePage',this)">Data Absen & Export</button>
       <button onclick="exportPDF()">Download PDF</button>
       <button onclick="logout()">Logout</button>
     </div>
@@ -89,15 +105,16 @@ video{max-width:100%;border-radius:18px;background:#0f172a}
     <div class="topbar">
       <div>
         <h2 id="welcome" style="margin:0"></h2>
-        <div style="color:#64748b;font-size:13px">Pantau absensi, wajah, lokasi, dan lembur secara online.</div>
+        <div style="color:#64748b;font-size:13px">Pantau absensi, wajah, lokasi, tidak hadir, dan lembur secara online.</div>
       </div>
       <button class="danger" onclick="logout()">Logout</button>
     </div>
 
     <section id="dashboardPage">
       <div class="grid">
-        <div class="card stat"><p>Total Karyawan</p><h1 id="totalEmp">0</h1></div>
+        <div class="card stat"><p>Total Karyawan Aktif</p><h1 id="totalEmp">0</h1></div>
         <div class="card stat"><p>Hadir Hari Ini</p><h1 id="totalToday">0</h1></div>
+        <div class="card stat"><p>Tidak Hadir Hari Ini</p><h1 id="totalAbsentToday">0</h1></div>
         <div class="card stat"><p>Total Data Absen</p><h1 id="totalAbs">0</h1></div>
       </div>
     </section>
@@ -121,7 +138,7 @@ video{max-width:100%;border-radius:18px;background:#0f172a}
         <button class="soft" onclick="resetEmployeeForm()">Reset</button>
       </div>
 
-      <div class="card">
+      <div class="card scroll">
         <h2>Data Karyawan</h2>
         <table>
           <thead>
@@ -136,11 +153,35 @@ video{max-width:100%;border-radius:18px;background:#0f172a}
 
     <section id="attendancePage" class="hidden">
       <div class="card">
+        <h2>Filter Data Absen</h2>
+        <div class="form-grid">
+          <input id="filterStart" type="date" onchange="renderAttendance()">
+          <input id="filterEnd" type="date" onchange="renderAttendance()">
+          <select id="filterStatus" onchange="renderAttendance()">
+            <option value="all">Semua Status</option>
+            <option value="hadir">Hadir</option>
+            <option value="tidak_hadir">Tidak Hadir</option>
+          </select>
+          <select id="filterEmployee" onchange="renderAttendance()">
+            <option value="all">Semua Karyawan</option>
+          </select>
+          <button class="soft" onclick="resetFilters()">Reset Filter</button>
+          <button class="goldbtn" onclick="exportPDF()">Export PDF Sesuai Filter</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card stat"><p>Total Hadir Filter</p><h1 id="sumPresent">0</h1></div>
+        <div class="card stat"><p>Total Tidak Hadir Filter</p><h1 id="sumAbsent">0</h1></div>
+        <div class="card stat"><p>Total Lembur Filter</p><h1 id="sumOvertime">0</h1></div>
+      </div>
+
+      <div class="card scroll">
         <h2>Data Absen</h2>
         <table>
           <thead>
             <tr>
-              <th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Masuk</th><th>Pulang</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Face</th>
+              <th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Tidak Hadir</th><th>Alasan</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Face</th>
             </tr>
           </thead>
           <tbody id="attendanceTable"></tbody>
@@ -149,13 +190,39 @@ video{max-width:100%;border-radius:18px;background:#0f172a}
     </section>
 
     <section id="employeeHomePage" class="hidden">
+      <div class="card card-dark">
+        <h2 style="margin-top:0">Absen Saya</h2>
+        <p>Setelah absen berhasil, hasil hari ini dan riwayat absen kamu akan muncul di bawah.</p>
+        <div class="notice">GPS/lokasi wajib diizinkan. Kalau lokasi mati atau ditolak, absen tidak bisa dilakukan.</div>
+      </div>
+
       <div class="card">
-        <h2>Verifikasi Wajah</h2>
+        <h2>Verifikasi Wajah & Absen</h2>
         <video id="video" width="320" height="240" autoplay muted playsinline></video><br>
         <button class="soft" onclick="startCamera()">Buka Kamera</button>
         <button class="goldbtn" onclick="registerFace()">Daftarkan Wajah</button>
         <button class="primary" onclick="checkIn()">Absen Masuk</button>
         <button class="primary" onclick="checkOut()">Absen Pulang</button>
+      </div>
+
+      <div class="card">
+        <h2>Absen Tidak Hadir</h2>
+        <div class="form-grid">
+          <select id="absentReason">
+            <option value="">Pilih alasan</option>
+            <option value="Sakit">Sakit</option>
+            <option value="Izin keluarga">Izin keluarga</option>
+            <option value="Keperluan mendadak">Keperluan mendadak</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+          <input id="absentNote" placeholder="Keterangan tambahan wajib diisi">
+        </div>
+        <button class="danger" onclick="markAbsent()">Absen Tidak Hadir</button>
+      </div>
+
+      <div class="card">
+        <h2>Hasil Absen Hari Ini</h2>
+        <div id="todayAttendanceBox" class="today-box"></div>
       </div>
 
       <div class="card">
@@ -165,16 +232,28 @@ video{max-width:100%;border-radius:18px;background:#0f172a}
         <input id="otNote" placeholder="Keterangan lembur">
         <button class="goldbtn" onclick="saveOvertime()">Simpan Lembur</button>
       </div>
+
+      <div class="card scroll">
+        <h2>Riwayat Absen Saya</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Tanggal</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Tidak Hadir</th><th>Alasan</th><th>Lembur</th><th>Lokasi</th>
+            </tr>
+          </thead>
+          <tbody id="myAttendanceTable"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 </div>
 
 <script>
 const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentUser=null, stream=null, allAttendance=[], allEmployees=[], modelsReady=false;
+let currentUser=null, stream=null, allAttendance=[], allEmployees=[], myAttendance=[], modelsReady=false;
 
 async function loadModels(){
   try{
@@ -189,6 +268,12 @@ async function loadModels(){
 loadModels();
 
 function today(){return new Date().toISOString().slice(0,10)}
+function nowTime(){return new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
+function safe(v){return (v===null||v===undefined||v==="")?"-":v}
+function statusBadge(status){
+  if(status==="tidak_hadir") return `<span class="badge no">Tidak Hadir</span>`;
+  return `<span class="badge ok">Hadir</span>`;
+}
 function logout(){location.reload()}
 
 function showPage(id,btn){
@@ -204,36 +289,14 @@ function showPage(id,btn){
 
 async function login(){
   const pinInput = document.getElementById("pin").value.trim();
+  if(!pinInput){alert("PIN wajib diisi");return;}
 
-  if(!pinInput){
-    alert("PIN wajib diisi");
-    return;
-  }
-
-  const {data,error} = await db
-    .from("employees")
-    .select("*")
-    .eq("pin", pinInput)
-    .maybeSingle();
-
-  if(error){
-    console.error("LOGIN ERROR:", error);
-    alert("Database error saat login");
-    return;
-  }
-
-  if(!data){
-    alert("PIN tidak ditemukan");
-    return;
-  }
-
-  if(data.is_active === false){
-    alert("Akun ini nonaktif");
-    return;
-  }
+  const {data,error} = await db.from("employees").select("*").eq("pin", pinInput).maybeSingle();
+  if(error){console.error("LOGIN ERROR:", error);alert("Database error saat login");return;}
+  if(!data){alert("PIN tidak ditemukan");return;}
+  if(data.is_active === false){alert("Akun ini nonaktif");return;}
 
   currentUser = data;
-
   loginBox.classList.add("hidden");
   app.classList.remove("hidden");
   welcome.innerText = "Halo, " + data.name;
@@ -247,31 +310,44 @@ async function login(){
     employeeNav.classList.remove("hidden");
     adminNav.classList.add("hidden");
     showPage("employeeHomePage");
+    await loadMyAttendance();
   }
 }
+
 async function loadAdmin(){
   const {data:emp}=await db.from("employees").select("*").order("created_at",{ascending:false});
-  const {data:abs}=await db.from("attendances").select("*").order("created_at",{ascending:false});
+  const {data:abs}=await db.from("attendances").select("*").order("date",{ascending:false}).order("created_at",{ascending:false});
   allEmployees=emp||[];
   allAttendance=abs||[];
 
   totalEmp.innerText=allEmployees.filter(e=>e.is_active).length;
-  totalToday.innerText=allAttendance.filter(a=>a.date===today()).length;
+  totalToday.innerText=allAttendance.filter(a=>a.date===today() && (a.status||"hadir")!=="tidak_hadir").length;
+  totalAbsentToday.innerText=allAttendance.filter(a=>a.date===today() && a.status==="tidak_hadir").length;
   totalAbs.innerText=allAttendance.length;
 
   renderEmployees();
+  renderFilterEmployees();
   renderAttendance();
+}
+
+async function loadMyAttendance(){
+  if(!currentUser) return;
+  const {data,error}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).order("date",{ascending:false}).order("created_at",{ascending:false});
+  if(error){console.error(error);alert("Gagal mengambil riwayat absen");return;}
+  myAttendance=data||[];
+  renderTodayAttendance();
+  renderMyAttendance();
 }
 
 function renderEmployees(){
   employeeTable.innerHTML=allEmployees.map(e=>`
     <tr>
-      <td>${e.name||""}</td>
-      <td>${e.phone||"-"}</td>
-      <td>${e.branch||"-"}</td>
-      <td>${e.position||"-"}</td>
-      <td>${e.pin||"-"}</td>
-      <td>${e.role||"employee"}</td>
+      <td>${safe(e.name)}</td>
+      <td>${safe(e.phone)}</td>
+      <td>${safe(e.branch)}</td>
+      <td>${safe(e.position)}</td>
+      <td>${safe(e.pin)}</td>
+      <td>${safe(e.role||"employee")}</td>
       <td><span class="badge ${e.is_active?'ok':'no'}">${e.is_active?'Aktif':'Nonaktif'}</span></td>
       <td>
         <button class="soft" onclick='editEmployee(${JSON.stringify(e)})'>Edit</button>
@@ -279,6 +355,10 @@ function renderEmployees(){
       </td>
     </tr>
   `).join("");
+}
+
+function renderFilterEmployees(){
+  filterEmployee.innerHTML = `<option value="all">Semua Karyawan</option>` + allEmployees.map(e=>`<option value="${e.id}">${e.name||'-'} - ${e.branch||'-'}</option>`).join("");
 }
 
 function editEmployee(e){
@@ -294,35 +374,15 @@ function editEmployee(e){
 }
 
 function resetEmployeeForm(){
-  editId.value="";
-  empName.value="";
-  empPhone.value="";
-  empBranch.value="";
-  empPosition.value="";
-  empPin.value="";
-  empRole.value="employee";
+  editId.value=""; empName.value=""; empPhone.value=""; empBranch.value=""; empPosition.value=""; empPin.value=""; empRole.value="employee";
 }
 
 async function saveEmployee(){
   if(!empName.value||!empPin.value)return alert("Nama dan PIN wajib diisi");
-
-  const payload={
-    name:empName.value,
-    phone:empPhone.value,
-    branch:empBranch.value,
-    position:empPosition.value,
-    pin:empPin.value,
-    role:empRole.value,
-    is_active:true
-  };
-
+  const payload={name:empName.value,phone:empPhone.value,branch:empBranch.value,position:empPosition.value,pin:empPin.value,role:empRole.value,is_active:true};
   let error;
-  if(editId.value){
-    ({error}=await db.from("employees").update(payload).eq("id",editId.value));
-  }else{
-    ({error}=await db.from("employees").insert(payload));
-  }
-
+  if(editId.value){({error}=await db.from("employees").update(payload).eq("id",editId.value));}
+  else{({error}=await db.from("employees").insert(payload));}
   if(error){console.error(error);return alert("Gagal simpan. PIN mungkin sudah dipakai.")}
   alert("Data karyawan berhasil disimpan");
   resetEmployeeForm();
@@ -335,14 +395,45 @@ async function toggleEmployee(id,status){
   loadAdmin();
 }
 
+function getFilteredAttendance(){
+  const start=filterStart?.value || "";
+  const end=filterEnd?.value || "";
+  const stat=filterStatus?.value || "all";
+  const emp=filterEmployee?.value || "all";
+  return allAttendance.filter(a=>{
+    const s=a.status||"hadir";
+    if(start && a.date < start) return false;
+    if(end && a.date > end) return false;
+    if(stat!=="all" && s!==stat) return false;
+    if(emp!=="all" && a.employee_id!==emp) return false;
+    return true;
+  });
+}
+
+function resetFilters(){
+  filterStart.value=""; filterEnd.value=""; filterStatus.value="all"; filterEmployee.value="all";
+  renderAttendance();
+}
+
 function renderAttendance(){
-  attendanceTable.innerHTML=allAttendance.map(a=>`
+  const data=getFilteredAttendance();
+  const hadir=data.filter(a=>(a.status||"hadir")!=="tidak_hadir").length;
+  const tidak=data.filter(a=>a.status==="tidak_hadir").length;
+  const lembur=data.filter(a=>a.overtime_start && a.overtime_end).length;
+  sumPresent.innerText=hadir;
+  sumAbsent.innerText=tidak;
+  sumOvertime.innerText=lembur;
+
+  attendanceTable.innerHTML=data.map(a=>`
     <tr>
-      <td>${a.employee_name||""}</td>
-      <td>${a.branch||""}</td>
-      <td>${a.date||""}</td>
-      <td>${a.check_in||"-"}</td>
-      <td>${a.check_out||"-"}</td>
+      <td>${safe(a.employee_name)}</td>
+      <td>${safe(a.branch)}</td>
+      <td>${safe(a.date)}</td>
+      <td>${statusBadge(a.status||"hadir")}</td>
+      <td>${safe(a.check_in)}</td>
+      <td>${safe(a.check_out)}</td>
+      <td>${safe(a.absent_time)}</td>
+      <td>${safe(a.absent_note)}</td>
       <td>
         ${a.check_in_photo?`<a href="${a.check_in_photo}" target="_blank">Foto Masuk</a>`:"-"}
         ${a.check_out_photo?`<br><a href="${a.check_out_photo}" target="_blank">Foto Pulang</a>`:""}
@@ -354,12 +445,44 @@ function renderAttendance(){
   `).join("");
 }
 
+function renderTodayAttendance(){
+  const a=myAttendance.find(x=>x.date===today());
+  if(!a){
+    todayAttendanceBox.innerHTML=`<div class="today-item"><b>Status</b>Belum absen hari ini</div>`;
+    return;
+  }
+  todayAttendanceBox.innerHTML=`
+    <div class="today-item"><b>Status</b>${(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir"}</div>
+    <div class="today-item"><b>Jam Masuk</b>${safe(a.check_in)}</div>
+    <div class="today-item"><b>Jam Pulang</b>${safe(a.check_out)}</div>
+    <div class="today-item"><b>Tidak Hadir</b>${safe(a.absent_time)}</div>
+    <div class="today-item"><b>Keterangan</b>${safe(a.absent_note)}</div>
+    <div class="today-item"><b>Lembur</b>${a.overtime_start&&a.overtime_end?a.overtime_start+" - "+a.overtime_end:"-"}</div>
+    <div class="today-item"><b>Lokasi</b>${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Lihat Lokasi</a>`:"-"}</div>
+  `;
+}
+
+function renderMyAttendance(){
+  myAttendanceTable.innerHTML=myAttendance.map(a=>`
+    <tr>
+      <td>${safe(a.date)}</td>
+      <td>${statusBadge(a.status||"hadir")}</td>
+      <td>${safe(a.check_in)}</td>
+      <td>${safe(a.check_out)}</td>
+      <td>${safe(a.absent_time)}</td>
+      <td>${safe(a.absent_note)}</td>
+      <td>${a.overtime_start&&a.overtime_end?a.overtime_start+" - "+a.overtime_end:"-"}</td>
+      <td>${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Map</a>`:"-"}</td>
+    </tr>
+  `).join("");
+}
+
 async function startCamera(){
   try{
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
     video.srcObject=stream;
     alert("Kamera berhasil dibuka");
-  }catch(e){console.error(e);alert("Kamera gagal dibuka")}
+  }catch(e){console.error(e);alert("Kamera gagal dibuka / izin kamera ditolak")}
 }
 
 async function getFaceDescriptor(){
@@ -379,10 +502,7 @@ async function registerFace(){
   alert("Wajah berhasil didaftarkan");
 }
 
-function distance(a,b){
-  let sum=0; for(let i=0;i<a.length;i++)sum+=(a[i]-b[i])*(a[i]-b[i]);
-  return Math.sqrt(sum);
-}
+function distance(a,b){let sum=0; for(let i=0;i<a.length;i++)sum+=(a[i]-b[i])*(a[i]-b[i]); return Math.sqrt(sum);}
 
 async function verifyFace(){
   const live=await getFaceDescriptor();
@@ -391,12 +511,17 @@ async function verifyFace(){
   return distance(live,currentUser.face_descriptor)<0.55;
 }
 
-async function getLocation(){
+async function requireLocation(){
+  if(!navigator.geolocation){alert("Browser tidak mendukung lokasi/GPS");return null;}
   return new Promise(resolve=>{
     navigator.geolocation.getCurrentPosition(
       p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),
-      ()=>resolve({lat:null,lng:null}),
-      {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+      err=>{
+        console.error("GPS ERROR",err);
+        alert("Lokasi/GPS wajib diaktifkan dan diizinkan. Absen dibatalkan.");
+        resolve(null);
+      },
+      {enableHighAccuracy:true,timeout:15000,maximumAge:0}
     );
   });
 }
@@ -408,88 +533,120 @@ async function captureAndUploadPhoto(type){
   canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
   const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.8));
   const fileName=`${currentUser.id}/${today()}-${type}-${Date.now()}.jpg`;
-
   const {error}=await db.storage.from("attendance-photos").upload(fileName,blob,{contentType:"image/jpeg",upsert:true});
   if(error){console.error(error);alert("Gagal upload foto");return null}
-
   const {data}=db.storage.from("attendance-photos").getPublicUrl(fileName);
   return data.publicUrl;
 }
 
 async function checkIn(){
+  const loc=await requireLocation();
+  if(!loc)return;
   alert("Mulai absen masuk");
   const ok=await verifyFace();
   if(!ok)return alert("Wajah tidak cocok");
-
   const photoUrl=await captureAndUploadPhoto("masuk");
-  const loc=await getLocation();
-
+  if(!photoUrl)return;
   const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
-  if(exist)return alert("Sudah absen masuk hari ini");
-
+  if(exist)return alert("Kamu sudah punya data absen hari ini");
   const {error}=await db.from("attendances").insert({
-    employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),
-    check_in:new Date().toLocaleTimeString("id-ID"),latitude:loc.lat,longitude:loc.lng,
-    check_in_photo:photoUrl,face_verified:true
+    employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:"hadir",
+    check_in:nowTime(),latitude:loc.lat,longitude:loc.lng,check_in_photo:photoUrl,face_verified:true
   });
-  if(error){console.error(error);return alert("Gagal simpan absen")}
+  if(error){console.error(error);return alert("Gagal simpan absen. Pastikan SQL tambahan sudah dijalankan.")}
   alert("Absen masuk berhasil");
+  await loadMyAttendance();
 }
 
 async function checkOut(){
+  const loc=await requireLocation();
+  if(!loc)return;
   alert("Mulai absen pulang");
   const ok=await verifyFace();
   if(!ok)return alert("Wajah tidak cocok");
-
   const photoUrl=await captureAndUploadPhoto("pulang");
+  if(!photoUrl)return;
   const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
-  if(!exist)return alert("Belum absen masuk");
-
-  const {error}=await db.from("attendances").update({
-    check_out:new Date().toLocaleTimeString("id-ID"),
-    check_out_photo:photoUrl
-  }).eq("id",exist.id);
-
+  if(!exist)return alert("Belum ada absen masuk hari ini");
+  if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
+  const {error}=await db.from("attendances").update({check_out:nowTime(),check_out_photo:photoUrl,latitude:loc.lat,longitude:loc.lng}).eq("id",exist.id);
   if(error){console.error(error);return alert("Gagal simpan pulang")}
   alert("Absen pulang berhasil");
+  await loadMyAttendance();
+}
+
+async function markAbsent(){
+  const reason=absentReason.value;
+  const note=absentNote.value.trim();
+  if(!reason)return alert("Pilih alasan tidak hadir dulu");
+  if(!note)return alert("Keterangan tidak hadir wajib diisi");
+  const loc=await requireLocation();
+  if(!loc)return;
+  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+  if(exist)return alert("Kamu sudah punya data absen hari ini");
+  const fullNote=reason+" - "+note;
+  const {error}=await db.from("attendances").insert({
+    employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:"tidak_hadir",
+    absent_time:nowTime(),absent_note:fullNote,latitude:loc.lat,longitude:loc.lng,face_verified:false
+  });
+  if(error){console.error(error);return alert("Gagal simpan tidak hadir. Pastikan SQL tambahan sudah dijalankan.")}
+  alert("Data tidak hadir berhasil disimpan");
+  absentReason.value=""; absentNote.value="";
+  await loadMyAttendance();
 }
 
 async function saveOvertime(){
   const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
   if(!exist)return alert("Absen masuk dulu");
-
-  const {error}=await db.from("attendances").update({
-    overtime_start:otStart.value,overtime_end:otEnd.value,overtime_note:otNote.value
-  }).eq("id",exist.id);
-
+  if(exist.status==="tidak_hadir")return alert("Tidak bisa input lembur karena status hari ini Tidak Hadir");
+  if(!otStart.value || !otEnd.value)return alert("Jam mulai dan jam selesai lembur wajib diisi");
+  const {error}=await db.from("attendances").update({overtime_start:otStart.value,overtime_end:otEnd.value,overtime_note:otNote.value}).eq("id",exist.id);
   if(error){console.error(error);return alert("Gagal simpan lembur")}
   alert("Lembur disimpan");
+  await loadMyAttendance();
 }
 
 function exportPDF(){
+  const data=getFilteredAttendance();
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF("landscape");
-  doc.setFontSize(16);
+  const start=filterStart?.value || "Semua";
+  const end=filterEnd?.value || "Semua";
+  const hadir=data.filter(a=>(a.status||"hadir")!=="tidak_hadir").length;
+  const tidak=data.filter(a=>a.status==="tidak_hadir").length;
+  const lembur=data.filter(a=>a.overtime_start && a.overtime_end).length;
+
+  doc.setFontSize(18);
   doc.text("Laporan Absensi Fortuna Absen",14,15);
   doc.setFontSize(10);
-  doc.text("Tanggal cetak: "+new Date().toLocaleString("id-ID"),14,22);
+  doc.text("Periode laporan: "+start+" sampai "+end,14,23);
+  doc.text("Tanggal cetak: "+new Date().toLocaleString("id-ID"),14,29);
 
-  const rows=allAttendance.map(a=>[
-    a.employee_name||"",a.branch||"",a.date||"",a.check_in||"-",a.check_out||"-",
+  doc.setFillColor(15,23,42); doc.roundedRect(14,36,55,16,3,3,"F");
+  doc.setFillColor(200,155,44); doc.roundedRect(74,36,55,16,3,3,"F");
+  doc.setFillColor(153,27,27); doc.roundedRect(134,36,65,16,3,3,"F");
+  doc.setTextColor(255,255,255); doc.setFontSize(9);
+  doc.text("TOTAL HADIR",18,42); doc.setFontSize(14); doc.text(String(hadir),18,49);
+  doc.setFontSize(9); doc.text("TOTAL LEMBUR",78,42); doc.setFontSize(14); doc.text(String(lembur),78,49);
+  doc.setFontSize(9); doc.text("TOTAL TIDAK HADIR",138,42); doc.setFontSize(14); doc.text(String(tidak),138,49);
+  doc.setTextColor(0,0,0);
+
+  const rows=data.map(a=>[
+    safe(a.employee_name),safe(a.branch),safe(a.date),(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir",
+    safe(a.check_in),safe(a.check_out),safe(a.absent_time),safe(a.absent_note),
     a.overtime_start&&a.overtime_end?`${a.overtime_start} - ${a.overtime_end}`:"-",
-    a.overtime_note||"-",
-    a.latitude&&a.longitude?`${a.latitude}, ${a.longitude}`:"-",
-    a.face_verified?"Terverifikasi":"Tidak"
+    safe(a.overtime_note),a.latitude&&a.longitude?`${a.latitude}, ${a.longitude}`:"-"
   ]);
 
   doc.autoTable({
-    startY:28,
-    head:[["Nama","Cabang","Tanggal","Masuk","Pulang","Lembur","Ket. Lembur","Lokasi","Face"]],
+    startY:60,
+    head:[["Nama","Cabang","Tanggal","Status","Masuk","Pulang","Tidak Hadir","Alasan","Lembur","Ket. Lembur","Lokasi"]],
     body:rows,
     styles:{fontSize:8,cellPadding:2},
-    headStyles:{fillColor:[15,23,42]}
+    headStyles:{fillColor:[15,23,42]},
+    alternateRowStyles:{fillColor:[248,250,252]}
   });
-  doc.save("laporan_absensi_fortuna.pdf");
+  doc.save("laporan_absensi_fortuna_filter.pdf");
 }
 </script>
 </body>
