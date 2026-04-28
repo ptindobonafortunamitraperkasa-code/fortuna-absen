@@ -375,6 +375,7 @@ function renderEmployees(){
       <td>
         <button class="soft" onclick='editEmployee(${JSON.stringify(e)})'>Edit</button>
         <button class="danger" onclick="toggleEmployee('${e.id}',${e.is_active})">${e.is_active?'Nonaktifkan':'Aktifkan'}</button>
+        <button class="danger" onclick="deleteEmployeeFull('${e.id}','${encodeURIComponent(e.name||'Karyawan')}')">Hapus</button>
       </td>
     </tr>
   `).join("");
@@ -421,6 +422,35 @@ async function toggleEmployee(id,status){
   const {error}=await db.from("employees").update({is_active:!status}).eq("id",id);
   if(error){console.error(error);return alert("Gagal ubah status")}
   loadAdmin();
+}
+
+async function deleteEmployeeFull(id, encodedName){
+  const name = decodeURIComponent(encodedName || "Karyawan");
+  const yakin1 = confirm(`Yakin hapus ${name}?
+
+Ini akan menghapus DATA KARYAWAN + SEMUA RIWAYAT ABSEN miliknya.`);
+  if(!yakin1) return;
+
+  const yakin2 = confirm(`Konfirmasi terakhir.
+
+Data ${name} dan seluruh riwayat absennya akan hilang permanen. Lanjutkan?`);
+  if(!yakin2) return;
+
+  const {error:absErr}=await db.from("attendances").delete().eq("employee_id",id);
+  if(absErr){
+    console.error("DELETE ATTENDANCE ERROR:", absErr);
+    return alert("Gagal hapus riwayat absen karyawan");
+  }
+
+  const {error:empErr}=await db.from("employees").delete().eq("id",id);
+  if(empErr){
+    console.error("DELETE EMPLOYEE ERROR:", empErr);
+    return alert("Riwayat absen sudah terhapus, tapi data karyawan gagal dihapus. Cek RLS/policy Supabase.");
+  }
+
+  alert(`Data ${name} dan seluruh riwayat absennya berhasil dihapus`);
+  resetEmployeeForm();
+  await loadAdmin();
 }
 
 function getFilteredAttendance(){
