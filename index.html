@@ -58,6 +58,11 @@ video{max-width:100%;border-radius:18px;background:#0f172a}
 .today-item{background:#f8fafc;border:1px solid #e5eaf3;border-radius:16px;padding:14px}
 .today-item b{display:block;font-size:12px;color:#64748b;margin-bottom:5px}
 .notice{padding:12px 14px;border-radius:16px;background:#fff7ed;color:#9a3412;font-weight:700;margin:10px 0}
+.scan-status{margin:10px 0;padding:10px 12px;border-radius:14px;background:#f8fafc;border:1px solid #e5eaf3;color:#334155;font-size:13px;font-weight:800}
+.scan-status.ready{background:#dcfce7;color:#166534}
+.scan-status.busy{background:#dbeafe;color:#1e40af}
+.scan-status.error{background:#fee2e2;color:#991b1b}
+.btn-disabled{opacity:.55;cursor:not-allowed}
 .preview-wrap{position:fixed;inset:0;background:#0f172acc;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
 .preview-box{width:min(1100px,96vw);height:min(760px,92vh);background:#fff;border-radius:22px;box-shadow:0 30px 90px #0005;display:flex;flex-direction:column;overflow:hidden}
 .preview-head{padding:14px 18px;border-bottom:1px solid #e5eaf3;display:flex;justify-content:space-between;align-items:center}
@@ -220,11 +225,12 @@ input,select{width:100%}
 
       <div class="card">
         <h2>Verifikasi Wajah & Absen</h2>
-        <video id="video" width="320" height="240" autoplay muted playsinline></video><br>
-        <button class="soft" onclick="startCamera()">Buka Kamera</button>
-        <button class="goldbtn" onclick="registerFace()">Daftarkan Wajah</button>
-        <button class="primary" onclick="checkIn()">Absen Masuk</button>
-        <button class="primary" onclick="checkOut()">Absen Pulang</button>
+        <div id="scanStatus" class="scan-status busy">Model wajah sedang loading... tunggu sampai siap.</div>
+        <video id="video" width="240" height="180" autoplay muted playsinline></video><br>
+        <button id="btnCamera" class="soft" onclick="startCamera()">Buka Kamera</button>
+        <button id="btnRegisterFace" class="goldbtn" onclick="registerFace()" disabled>Daftarkan Wajah</button>
+        <button id="btnCheckIn" class="primary" onclick="checkIn()" disabled>Absen Masuk</button>
+        <button id="btnCheckOut" class="primary" onclick="checkOut()" disabled>Absen Pulang</button>
       </div>
 
       <div class="card">
@@ -275,19 +281,69 @@ const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentUser=null, stream=null, allAttendance=[], allEmployees=[], myAttendance=[], modelsReady=false;
+let currentUser=null, stream=null, allAttendance=[], allEmployees=[], myAttendance=[], modelsReady=false, cameraReady=false, isProcessing=false;
 
 async function loadModels(){
   try{
+    setScanStatus("Model wajah sedang loading... jangan klik absen dulu.","busy");
     const MODEL_URL="https://justadudewhohacks.github.io/face-api.js/models";
     await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
     await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
     await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
     modelsReady=true;
     console.log("Model wajah berhasil load");
-  }catch(e){console.error(e);alert("Model wajah gagal load")}
+    if(cameraReady) setScanStatus("Siap digunakan. Kamera dan model wajah sudah aktif.","ready");
+    else setScanStatus("Model wajah siap. Buka kamera dulu sebelum absen.","ready");
+    setScanButtons();
+  }catch(e){
+    console.error(e);
+    setScanStatus("Model wajah gagal loading. Refresh halaman lalu coba lagi.","error");
+    alert("Model wajah gagal load");
+  }
 }
 loadModels();
+
+function setScanStatus(text,type="busy"){
+  const el=document.getElementById("scanStatus");
+  if(!el)return;
+  el.className="scan-status "+type;
+  el.innerText=text;
+}
+
+function setScanButtons(){
+  const ready=modelsReady && cameraReady && !isProcessing;
+  ["btnRegisterFace","btnCheckIn","btnCheckOut"].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b){b.disabled=!ready; b.classList.toggle("btn-disabled",!ready);}
+  });
+  const cam=document.getElementById("btnCamera");
+  if(cam){cam.disabled=isProcessing; cam.classList.toggle("btn-disabled",isProcessing);}
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+async function waitVideoReady(){
+  const v=document.getElementById("video");
+  if(!v || !v.srcObject)return false;
+  for(let i=0;i<20;i++){
+    if(v.readyState>=2 && v.videoWidth>0)return true;
+    await sleep(150);
+  }
+  return false;
+}
+
+async function runLocked(message,fn){
+  if(isProcessing){alert("Masih proses, tunggu sebentar");return;}
+  isProcessing=true;
+  setScanButtons();
+  setScanStatus(message,"busy");
+  try{ await fn(); }
+  finally{
+    isProcessing=false;
+    setScanButtons();
+    if(modelsReady && cameraReady) setScanStatus("Siap digunakan. Kamera dan model wajah sudah aktif.","ready");
+  }
+}
 
 function today(){return new Date().toISOString().slice(0,10)}
 function nowTime(){return new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
@@ -332,6 +388,9 @@ async function login(){
     employeeNav.classList.remove("hidden");
     adminNav.classList.add("hidden");
     showPage("employeeHomePage");
+    setScanButtons();
+    if(modelsReady) setScanStatus("Model wajah siap. Buka kamera dulu sebelum absen.","ready");
+    else setScanStatus("Model wajah sedang loading... tunggu sampai siap.","busy");
     await loadMyAttendance();
   }
 }
@@ -539,27 +598,55 @@ function renderMyAttendance(){
 
 async function startCamera(){
   try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false});
+    setScanStatus("Membuka kamera... izinkan akses kamera di browser.","busy");
+    if(stream){stream.getTracks().forEach(t=>t.stop());}
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"user",width:{ideal:240},height:{ideal:180},frameRate:{ideal:15,max:20}},
+      audio:false
+    });
     video.srcObject=stream;
-    alert("Kamera berhasil dibuka");
-  }catch(e){console.error(e);alert("Kamera gagal dibuka / izin kamera ditolak")}
+    const ok=await waitVideoReady();
+    cameraReady=ok;
+    if(ok){
+      setScanStatus(modelsReady?"Siap digunakan. Kamera dan model wajah sudah aktif.":"Kamera aktif. Model wajah masih loading...","ready");
+      alert("Kamera berhasil dibuka");
+    }else{
+      setScanStatus("Kamera terbuka tapi video belum siap. Tutup dan buka ulang kamera.","error");
+      alert("Kamera belum siap, coba klik Buka Kamera lagi");
+    }
+    setScanButtons();
+  }catch(e){
+    console.error(e);
+    cameraReady=false;
+    setScanButtons();
+    setScanStatus("Kamera gagal dibuka / izin kamera ditolak.","error");
+    alert("Kamera gagal dibuka / izin kamera ditolak");
+  }
 }
 
 async function getFaceDescriptor(){
   if(!modelsReady){alert("Model wajah masih loading");return null}
-  if(!video.srcObject){alert("Buka kamera dulu");return null}
-  const detection=await faceapi.detectSingleFace(video,new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-  if(!detection){alert("Wajah tidak terdeteksi");return null}
+  if(!video.srcObject || !cameraReady){alert("Buka kamera dulu sampai status siap");return null}
+  const ready=await waitVideoReady();
+  if(!ready){alert("Video kamera belum siap, klik Buka Kamera lagi");return null}
+  setScanStatus("Sedang membaca wajah... posisikan wajah di tengah kamera.","busy");
+  const detection=await faceapi
+    .detectSingleFace(video,new faceapi.TinyFaceDetectorOptions({inputSize:160,scoreThreshold:0.5}))
+    .withFaceLandmarks()
+    .withFaceDescriptor();
+  if(!detection){alert("Wajah tidak terdeteksi. Dekatkan wajah dan pastikan cahaya cukup.");return null}
   return Array.from(detection.descriptor);
 }
 
 async function registerFace(){
-  const desc=await getFaceDescriptor();
-  if(!desc)return;
-  const {error}=await db.from("employees").update({face_descriptor:desc}).eq("id",currentUser.id);
-  if(error){console.error(error);return alert("Gagal simpan wajah")}
-  currentUser.face_descriptor=desc;
-  alert("Wajah berhasil didaftarkan");
+  await runLocked("Sedang mendaftarkan wajah...", async()=>{
+    const desc=await getFaceDescriptor();
+    if(!desc)return;
+    const {error}=await db.from("employees").update({face_descriptor:desc}).eq("id",currentUser.id);
+    if(error){console.error(error);return alert("Gagal simpan wajah")}
+    currentUser.face_descriptor=desc;
+    alert("Wajah berhasil didaftarkan");
+  });
 }
 
 function distance(a,b){let sum=0; for(let i=0;i<a.length;i++)sum+=(a[i]-b[i])*(a[i]-b[i]); return Math.sqrt(sum);}
@@ -600,39 +687,43 @@ async function captureAndUploadPhoto(type){
 }
 
 async function checkIn(){
-  const loc=await requireLocation();
-  if(!loc)return;
-  alert("Mulai absen masuk");
-  const ok=await verifyFace();
-  if(!ok)return alert("Wajah tidak cocok");
-  const photoUrl=await captureAndUploadPhoto("masuk");
-  if(!photoUrl)return;
-  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
-  if(exist)return alert("Kamu sudah punya data absen hari ini");
-  const {error}=await db.from("attendances").insert({
-    employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:"hadir",
-    check_in:nowTime(),latitude:loc.lat,longitude:loc.lng,check_in_photo:photoUrl,face_verified:true
+  await runLocked("Memproses absen masuk...", async()=>{
+    const loc=await requireLocation();
+    if(!loc)return;
+    const ok=await verifyFace();
+    if(!ok)return alert("Wajah tidak cocok");
+    setScanStatus("Wajah cocok. Upload foto dan simpan absen...","busy");
+    const photoUrl=await captureAndUploadPhoto("masuk");
+    if(!photoUrl)return;
+    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+    if(exist)return alert("Kamu sudah punya data absen hari ini");
+    const {error}=await db.from("attendances").insert({
+      employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:"hadir",
+      check_in:nowTime(),latitude:loc.lat,longitude:loc.lng,check_in_photo:photoUrl,face_verified:true
+    });
+    if(error){console.error(error);return alert("Gagal simpan absen. Pastikan SQL tambahan sudah dijalankan.")}
+    alert("Absen masuk berhasil");
+    await loadMyAttendance();
   });
-  if(error){console.error(error);return alert("Gagal simpan absen. Pastikan SQL tambahan sudah dijalankan.")}
-  alert("Absen masuk berhasil");
-  await loadMyAttendance();
 }
 
 async function checkOut(){
-  const loc=await requireLocation();
-  if(!loc)return;
-  alert("Mulai absen pulang");
-  const ok=await verifyFace();
-  if(!ok)return alert("Wajah tidak cocok");
-  const photoUrl=await captureAndUploadPhoto("pulang");
-  if(!photoUrl)return;
-  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
-  if(!exist)return alert("Belum ada absen masuk hari ini");
-  if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
-  const {error}=await db.from("attendances").update({check_out:nowTime(),check_out_photo:photoUrl,latitude:loc.lat,longitude:loc.lng}).eq("id",exist.id);
-  if(error){console.error(error);return alert("Gagal simpan pulang")}
-  alert("Absen pulang berhasil");
-  await loadMyAttendance();
+  await runLocked("Memproses absen pulang...", async()=>{
+    const loc=await requireLocation();
+    if(!loc)return;
+    const ok=await verifyFace();
+    if(!ok)return alert("Wajah tidak cocok");
+    setScanStatus("Wajah cocok. Upload foto dan simpan absen pulang...","busy");
+    const photoUrl=await captureAndUploadPhoto("pulang");
+    if(!photoUrl)return;
+    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+    if(!exist)return alert("Belum ada absen masuk hari ini");
+    if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
+    const {error}=await db.from("attendances").update({check_out:nowTime(),check_out_photo:photoUrl,latitude:loc.lat,longitude:loc.lng}).eq("id",exist.id);
+    if(error){console.error(error);return alert("Gagal simpan pulang")}
+    alert("Absen pulang berhasil");
+    await loadMyAttendance();
+  });
 }
 
 async function markAbsent(){
