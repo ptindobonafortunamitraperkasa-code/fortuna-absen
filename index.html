@@ -164,13 +164,15 @@ input,select{width:100%}
           <input id="workStartTime" type="time" value="07:45">
           <input id="workLateTime" type="time" value="08:00">
           <input id="workEndTime" type="time" value="17:00">
+          <input id="workBreakLimit" type="number" min="1" value="60" placeholder="Batas izin keluar (menit)">
+          <input id="workBreakFine" type="number" min="0" step="500" value="1000" placeholder="Denda izin / menit">
           <button class="goldbtn" onclick="saveWorkSetting()">Simpan Jam Cabang</button>
         </div>
       </div>
       <div class="card scroll">
         <h2>Daftar Setting Jam Cabang</h2>
         <table>
-          <thead><tr><th>Cabang/Gudang</th><th>Jam Masuk Standar</th><th>Batas Telat</th><th>Jam Pulang</th><th>Status</th></tr></thead>
+          <thead><tr><th>Cabang/Gudang</th><th>Jam Masuk Standar</th><th>Batas Telat</th><th>Jam Pulang</th><th>Batas Izin Keluar</th><th>Denda Izin/Menit</th><th>Status</th></tr></thead>
           <tbody id="workSettingsTable"></tbody>
         </table>
       </div>
@@ -255,7 +257,7 @@ input,select{width:100%}
         <table>
           <thead>
             <tr>
-              <th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Status</th><th>Status Waktu</th><th>Selisih</th><th>Masuk</th><th>Pulang</th><th>Status Pulang</th><th>Tidak Hadir</th><th>Alasan</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Face</th>
+              <th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Status</th><th>Status Waktu</th><th>Selisih</th><th>Masuk</th><th>Pulang</th><th>Status Pulang</th><th>Izin Keluar</th><th>Masuk Kembali</th><th>Lambat Izin</th><th>Potongan Izin</th><th>Tidak Hadir</th><th>Alasan</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Face</th>
             </tr>
           </thead>
           <tbody id="attendanceTable"></tbody>
@@ -292,7 +294,7 @@ input,select{width:100%}
         <h2>Ringkasan Potongan per Karyawan</h2>
         <table>
           <thead>
-            <tr><th>Nama</th><th>Cabang</th><th>Bulan</th><th>Jumlah Hari Telat</th><th>Total Menit Telat</th><th>Denda / Menit</th><th>Total Potongan</th><th>Riwayat Telat</th></tr>
+            <tr><th>Nama</th><th>Cabang</th><th>Bulan</th><th>Hari Telat Masuk</th><th>Menit Telat Masuk</th><th>Menit Lambat Izin</th><th>Denda/Menit</th><th>Total Potongan</th><th>Riwayat Potongan</th></tr>
           </thead>
           <tbody id="penaltyTable"></tbody>
         </table>
@@ -314,6 +316,8 @@ input,select{width:100%}
         <button id="btnRegisterFace" class="goldbtn" onclick="registerFace()" disabled>Daftarkan Wajah</button>
         <button id="btnCheckIn" class="primary" onclick="checkIn()" disabled>Absen Masuk</button>
         <button id="btnCheckOut" class="primary" onclick="checkOut()" disabled>Absen Pulang</button>
+        <button id="btnBreakOut" class="orange" onclick="breakOut()" disabled>Izin Keluar</button>
+        <button id="btnBreakIn" class="green" onclick="breakIn()" disabled>Masuk Kembali</button>
       </div>
 
       <div class="card">
@@ -349,7 +353,7 @@ input,select{width:100%}
         <table>
           <thead>
             <tr>
-              <th>Tanggal</th><th>Status</th><th>Status Waktu</th><th>Selisih</th><th>Masuk</th><th>Pulang</th><th>Status Pulang</th><th>Tidak Hadir</th><th>Alasan</th><th>Lembur</th><th>Lokasi</th>
+              <th>Tanggal</th><th>Status</th><th>Status Waktu</th><th>Selisih</th><th>Masuk</th><th>Pulang</th><th>Status Pulang</th><th>Izin Keluar</th><th>Masuk Kembali</th><th>Lambat Izin</th><th>Potongan Izin</th><th>Tidak Hadir</th><th>Alasan</th><th>Lembur</th><th>Lokasi</th>
             </tr>
           </thead>
           <tbody id="myAttendanceTable"></tbody>
@@ -395,7 +399,7 @@ function setScanStatus(text,type="busy"){
 
 function setScanButtons(){
   const ready=modelsReady && cameraReady && !isProcessing;
-  ["btnRegisterFace","btnCheckIn","btnCheckOut"].forEach(id=>{
+  ["btnRegisterFace","btnCheckIn","btnCheckOut","btnBreakOut","btnBreakIn"].forEach(id=>{
     const b=document.getElementById(id);
     if(b){b.disabled=!ready; b.classList.toggle("btn-disabled",!ready);}
   });
@@ -492,6 +496,29 @@ function calculateCheckout(branch, timeText){
   if(pulang===null || end===null) return {status:"unknown",minutes:0,label:"-"};
   if(pulang < end){const diff=end-pulang; return {status:"early_leave",minutes:diff,label:`Pulang Lebih Awal ${diff} menit`};}
   return {status:"normal_checkout",minutes:0,label:""};
+}
+function getBreakSetting(branch){
+  const st=getWorkSetting(branch);
+  return {
+    limit:Number(st.break_limit_minutes || 60),
+    fine:Number(st.break_fine_per_minute || getFinePerMinute())
+  };
+}
+function calculateBreakReturn(branch, outTime, inTime){
+  const b=getBreakSetting(branch);
+  const out=timeToMinutes(outTime);
+  const back=timeToMinutes(inTime);
+  if(out===null || back===null) return {minutes:0,label:"-",fine:0,status:"unknown",limit:b.limit};
+  const deadline=out + b.limit;
+  const diff=back > deadline ? back - deadline : 0;
+  return {
+    minutes:diff,
+    label:diff>0 ? `Lambat karena izin keluar ${diff} menit` : "Tepat waktu kembali",
+    fine:diff * b.fine,
+    status:diff>0 ? "break_late" : "break_ontime",
+    limit:b.limit,
+    finePerMinute:b.fine
+  };
 }
 function logout(){location.reload()}
 
@@ -611,19 +638,23 @@ function renderWorkSettings(){
     workStartTime.value=st.start_time||"07:45";
     workLateTime.value=st.late_time||"08:00";
     if(document.getElementById("workEndTime")) workEndTime.value=st.end_time||"17:00";
+    if(document.getElementById("workBreakLimit")) workBreakLimit.value=st.break_limit_minutes||60;
+    if(document.getElementById("workBreakFine")) workBreakFine.value=st.break_fine_per_minute||getFinePerMinute();
     workBranchSelect.onchange=()=>{
       const s=getWorkSetting(workBranchSelect.value);
       workStartTime.value=s.start_time||"07:45";
       workLateTime.value=s.late_time||"08:00";
       if(document.getElementById("workEndTime")) workEndTime.value=s.end_time||"17:00";
+      if(document.getElementById("workBreakLimit")) workBreakLimit.value=s.break_limit_minutes||60;
+      if(document.getElementById("workBreakFine")) workBreakFine.value=s.break_fine_per_minute||getFinePerMinute();
     };
   }
   if(document.getElementById("workSettingsTable")){
     workSettingsTable.innerHTML = branches.map(b=>{
       const st=getWorkSetting(b);
       const saved=workSettings.some(x=>(x.branch||"").trim()===b);
-      return `<tr><td>${b}</td><td>${st.start_time||"07:45"}</td><td>${st.late_time||"08:00"}</td><td>${st.end_time||"17:00"}</td><td>${saved?"Tersimpan":"Default"}</td></tr>`;
-    }).join("") || `<tr><td colspan="5" class="muted">Belum ada cabang/gudang.</td></tr>`;
+      return `<tr><td>${b}</td><td>${st.start_time||"07:45"}</td><td>${st.late_time||"08:00"}</td><td>${st.end_time||"17:00"}</td><td>${st.break_limit_minutes||60} menit</td><td>${formatRupiah(st.break_fine_per_minute||getFinePerMinute())}</td><td>${saved?"Tersimpan":"Default"}</td></tr>`;
+    }).join("") || `<tr><td colspan="7" class="muted">Belum ada cabang/gudang.</td></tr>`;
   }
 }
 
@@ -631,8 +662,9 @@ async function saveWorkSetting(){
   const branch=(workBranchSelect.value||"").trim();
   if(!branch)return alert("Pilih cabang/gudang dulu");
   if(!workStartTime.value || !workLateTime.value || !workEndTime.value)return alert("Jam masuk, batas telat, dan jam pulang wajib diisi");
+  if(document.getElementById("workBreakLimit") && Number(workBreakLimit.value||0)<=0)return alert("Batas izin keluar wajib lebih dari 0 menit");
   if(timeToMinutes(workLateTime.value) < timeToMinutes(workStartTime.value))return alert("Batas telat tidak boleh lebih awal dari jam masuk standar");
-  const payload={branch,start_time:workStartTime.value,late_time:workLateTime.value,end_time:workEndTime.value,updated_at:new Date().toISOString()};
+  const payload={branch,start_time:workStartTime.value,late_time:workLateTime.value,end_time:workEndTime.value,break_limit_minutes:Number(workBreakLimit?.value||60),break_fine_per_minute:Number(workBreakFine?.value||getFinePerMinute()),updated_at:new Date().toISOString()};
   const {error}=await db.from("branch_work_settings").upsert(payload,{onConflict:"branch"});
   if(error){console.error(error);return alert("Gagal simpan jam kerja. Pastikan SQL tabel branch_work_settings sudah dijalankan.")}
   alert("Jam kerja cabang berhasil disimpan");
@@ -754,6 +786,10 @@ function renderAttendance(){
       <td>${safe(a.check_in)}</td>
       <td>${safe(a.check_out)}</td>
       <td>${checkoutBadge(a.checkout_status,a.checkout_label)}</td>
+      <td>${safe(a.break_out)}</td>
+      <td>${safe(a.break_in)}</td>
+      <td>${a.break_late_minutes?`<span class="badge no">${safe(a.break_late_label)}</span>`:(a.break_in?`<span class="badge ok">Tepat waktu kembali</span>`:"-")}</td>
+      <td>${a.break_fine?formatRupiah(a.break_fine):"-"}</td>
       <td>${safe(a.absent_time)}</td>
       <td>${safe(a.absent_note)}</td>
       <td>
@@ -780,6 +816,10 @@ function renderTodayAttendance(){
     <div class="today-item"><b>Jam Masuk</b>${safe(a.check_in)}</div>
     <div class="today-item"><b>Jam Pulang</b>${safe(a.check_out)}</div>
     <div class="today-item"><b>Status Pulang</b>${safe(a.checkout_label)}</div>
+    <div class="today-item"><b>Izin Keluar</b>${safe(a.break_out)}</div>
+    <div class="today-item"><b>Masuk Kembali</b>${safe(a.break_in)}</div>
+    <div class="today-item"><b>Lambat Izin</b>${a.break_late_minutes?safe(a.break_late_label):safe(a.break_in?"Tepat waktu kembali":"-")}</div>
+    <div class="today-item"><b>Potongan Izin</b>${a.break_fine?formatRupiah(a.break_fine):"-"}</div>
     <div class="today-item"><b>Tidak Hadir</b>${safe(a.absent_time)}</div>
     <div class="today-item"><b>Keterangan</b>${safe(a.absent_note)}</div>
     <div class="today-item"><b>Lembur</b>${a.overtime_start&&a.overtime_end?a.overtime_start+" - "+a.overtime_end:"-"}</div>
@@ -797,6 +837,10 @@ function renderMyAttendance(){
       <td>${safe(a.check_in)}</td>
       <td>${safe(a.check_out)}</td>
       <td>${checkoutBadge(a.checkout_status,a.checkout_label)}</td>
+      <td>${safe(a.break_out)}</td>
+      <td>${safe(a.break_in)}</td>
+      <td>${a.break_late_minutes?`<span class="badge no">${safe(a.break_late_label)}</span>`:(a.break_in?`<span class="badge ok">Tepat waktu kembali</span>`:"-")}</td>
+      <td>${a.break_fine?formatRupiah(a.break_fine):"-"}</td>
       <td>${safe(a.absent_time)}</td>
       <td>${safe(a.absent_note)}</td>
       <td>${a.overtime_start&&a.overtime_end?a.overtime_start+" - "+a.overtime_end:"-"}</td>
@@ -971,6 +1015,63 @@ async function checkOut(){
   });
 }
 
+async function breakOut(){
+  await runLocked("Memproses izin keluar...", async()=>{
+    const loc=await requireLocation();
+    if(!loc)return;
+    const ok=await verifyFace();
+    if(!ok)return alert("Wajah tidak cocok");
+    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+    if(!exist)return alert("Absen masuk dulu sebelum izin keluar");
+    if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
+    if(exist.break_out && !exist.break_in)return alert("Kamu sedang izin keluar. Klik Masuk Kembali dulu.");
+    if(exist.break_out && exist.break_in)return alert("Izin keluar hari ini sudah selesai. Versi ini mendukung 1 kali izin keluar per hari.");
+    const b=getBreakSetting(currentUser.branch);
+    const jam=nowTime();
+    const {error}=await db.from("attendances").update({
+      break_out:jam,
+      break_limit_minutes:b.limit,
+      break_fine_per_minute:b.fine,
+      break_late_minutes:0,
+      break_late_label:null,
+      break_fine:0,
+      latitude:loc.lat,longitude:loc.lng
+    }).eq("id",exist.id);
+    if(error){console.error(error);return alert("Gagal simpan izin keluar. Pastikan SQL kolom izin keluar sudah dijalankan.")}
+    alert(`Izin keluar tercatat jam ${jam}. Batas kembali ${b.limit} menit.`);
+    await loadMyAttendance();
+  });
+}
+
+async function breakIn(){
+  await runLocked("Memproses masuk kembali...", async()=>{
+    const loc=await requireLocation();
+    if(!loc)return;
+    const ok=await verifyFace();
+    if(!ok)return alert("Wajah tidak cocok");
+    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+    if(!exist)return alert("Belum ada absen masuk hari ini");
+    if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
+    if(!exist.break_out)return alert("Belum ada data izin keluar. Klik Izin Keluar dulu.");
+    if(exist.break_in)return alert("Masuk kembali hari ini sudah tercatat");
+    const jam=nowTime();
+    const c=calculateBreakReturn(currentUser.branch,exist.break_out,jam);
+    const {error}=await db.from("attendances").update({
+      break_in:jam,
+      break_limit_minutes:c.limit,
+      break_fine_per_minute:c.finePerMinute,
+      break_late_minutes:c.minutes,
+      break_late_label:c.label,
+      break_fine:c.fine,
+      latitude:loc.lat,longitude:loc.lng
+    }).eq("id",exist.id);
+    if(error){console.error(error);return alert("Gagal simpan masuk kembali. Pastikan SQL kolom izin keluar sudah dijalankan.")}
+    if(c.minutes>0) alert(`Masuk kembali tercatat. ${c.label}. Potongan ${formatRupiah(c.fine)}.`);
+    else alert("Masuk kembali tercatat. Tepat waktu kembali.");
+    await loadMyAttendance();
+  });
+}
+
 async function markAbsent(){
   const reason=absentReason.value;
   const note=absentNote.value.trim();
@@ -1052,9 +1153,13 @@ function getPenaltyReport(){
         month,
         late_days:0,
         total_minutes:0,
+        break_minutes:0,
         fine_per_minute:fine,
+        break_fine_per_minute:Number(a.break_fine_per_minute || fine),
         total_fine:0,
-        details:[]
+        break_fine:0,
+        details:[],
+        break_details:[]
       };
     }
     report[key].late_days += 1;
@@ -1067,16 +1172,45 @@ function getPenaltyReport(){
     });
   });
 
+  allAttendance.forEach(a=>{
+    if(!a.date || !String(a.date).startsWith(month)) return;
+    if(branchFilter !== "all" && (a.branch||"") !== branchFilter) return;
+    const minutes = Number(a.break_late_minutes || 0);
+    if(minutes <= 0) return;
+    const key = a.employee_id || a.employee_name || "unknown";
+    if(!report[key]){
+      report[key] = {
+        employee_id:a.employee_id,
+        name:a.employee_name || "-",
+        branch:a.branch || "-",
+        month,
+        late_days:0,
+        total_minutes:0,
+        break_minutes:0,
+        fine_per_minute:fine,
+        break_fine_per_minute:Number(a.break_fine_per_minute || fine),
+        total_fine:0,
+        break_fine:0,
+        details:[],
+        break_details:[]
+      };
+    }
+    report[key].break_minutes += minutes;
+    report[key].break_fine += Number(a.break_fine || (minutes * Number(a.break_fine_per_minute || fine)));
+    report[key].break_details.push({date:a.date, out:a.break_out||"-", back:a.break_in||"-", minutes, label:a.break_late_label||`Lambat karena izin keluar ${minutes} menit`});
+  });
+
   return Object.values(report).map(r=>{
-    r.total_fine = r.total_minutes * fine;
+    r.total_fine = (r.total_minutes * fine) + (r.break_fine || 0);
     r.details.sort((x,y)=>String(x.date).localeCompare(String(y.date)));
+    if(r.break_details) r.break_details.sort((x,y)=>String(x.date).localeCompare(String(y.date)));
     return r;
   }).sort((a,b)=>b.total_minutes-a.total_minutes || String(a.name).localeCompare(String(b.name)));
 }
 function renderPenaltyReport(){
   renderPenaltyDefaults();
   const rows = getPenaltyReport();
-  const totalMinutes = rows.reduce((s,r)=>s+r.total_minutes,0);
+  const totalMinutes = rows.reduce((s,r)=>s+r.total_minutes+(r.break_minutes||0),0);
   const totalMoney = rows.reduce((s,r)=>s+r.total_fine,0);
 
   if(document.getElementById("penaltyEmpCount")) penaltyEmpCount.innerText = rows.length;
@@ -1091,11 +1225,12 @@ function renderPenaltyReport(){
       <td>${safe(r.month)}</td>
       <td>${r.late_days} hari</td>
       <td><b>${r.total_minutes} menit</b></td>
+      <td><b>${r.break_minutes||0} menit</b></td>
       <td>${formatRupiah(r.fine_per_minute)}</td>
       <td><b>${formatRupiah(r.total_fine)}</b></td>
-      <td>${r.details.map(d=>`${d.date} (${d.check_in}) = ${d.minutes} menit`).join("<br>")}</td>
+      <td>${[...r.details.map(d=>`${d.date} masuk (${d.check_in}) = ${d.minutes} menit`), ...(r.break_details||[]).map(d=>`${d.date} izin keluar (${d.out}-${d.back}) = ${d.minutes} menit`)].join("<br>")}</td>
     </tr>
-  `).join("") : `<tr><td colspan="8" class="muted">Belum ada data terlambat pada bulan/filter ini.</td></tr>`;
+  `).join("") : `<tr><td colspan="9" class="muted">Belum ada data terlambat pada bulan/filter ini.</td></tr>`;
 }
 function buildPenaltyPDF(){
   renderPenaltyDefaults();
@@ -1104,7 +1239,7 @@ function buildPenaltyPDF(){
   const doc=new jsPDF("landscape");
   const month = document.getElementById("penaltyMonth")?.value || getCurrentMonth();
   const branchFilter = document.getElementById("penaltyBranch")?.value || "all";
-  const totalMinutes = rows.reduce((s,r)=>s+r.total_minutes,0);
+  const totalMinutes = rows.reduce((s,r)=>s+r.total_minutes+(r.break_minutes||0),0);
   const totalMoney = rows.reduce((s,r)=>s+r.total_fine,0);
 
   doc.setFontSize(18);
@@ -1119,10 +1254,10 @@ function buildPenaltyPDF(){
 
   doc.autoTable({
     startY:62,
-    head:[["Nama","Cabang/Gudang","Bulan","Hari Telat","Total Menit","Denda/Menit","Total Potongan","Riwayat Telat"]],
+    head:[["Nama","Cabang/Gudang","Bulan","Hari Telat","Telat Masuk","Lambat Izin","Denda/Menit","Total Potongan","Riwayat Potongan"]],
     body:rows.map(r=>[
-      safe(r.name), safe(r.branch), safe(r.month), r.late_days+" hari", r.total_minutes+" menit", formatRupiah(r.fine_per_minute), formatRupiah(r.total_fine),
-      r.details.map(d=>`${d.date} ${d.check_in} = ${d.minutes} menit`).join("\n")
+      safe(r.name), safe(r.branch), safe(r.month), r.late_days+" hari", r.total_minutes+" menit", (r.break_minutes||0)+" menit", formatRupiah(r.fine_per_minute), formatRupiah(r.total_fine),
+      [...r.details.map(d=>`${d.date} masuk ${d.check_in} = ${d.minutes} menit`), ...(r.break_details||[]).map(d=>`${d.date} izin ${d.out}-${d.back} = ${d.minutes} menit`)].join("\n")
     ]),
     styles:{fontSize:8,cellPadding:2,overflow:"linebreak"},
     headStyles:{fillColor:[15,23,42]},
@@ -1183,14 +1318,14 @@ function buildPDF(){
 
   const rows=data.map(a=>[
     safe(a.employee_name),safe(a.branch),safe(a.date),(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir",
-    safe(a.punctuality_label),a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-",safe(a.check_in),safe(a.check_out),safe(a.checkout_label),safe(a.absent_time),safe(a.absent_note),
+    safe(a.punctuality_label),a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-",safe(a.check_in),safe(a.check_out),safe(a.checkout_label),safe(a.break_out),safe(a.break_in),a.break_late_minutes?safe(a.break_late_label):"-",a.break_fine?formatRupiah(a.break_fine):"-",safe(a.absent_time),safe(a.absent_note),
     a.overtime_start&&a.overtime_end?`${a.overtime_start} - ${a.overtime_end}`:"-",
     safe(a.overtime_note),a.latitude&&a.longitude?`${a.latitude}, ${a.longitude}`:"-"
   ]);
 
   doc.autoTable({
     startY:90,
-    head:[["Nama","Cabang/Gudang","Tanggal","Status","Status Waktu","Selisih","Masuk","Pulang","Status Pulang","Tidak Hadir","Alasan","Lembur","Ket. Lembur","Lokasi"]],
+    head:[["Nama","Cabang/Gudang","Tanggal","Status","Status Waktu","Selisih","Masuk","Pulang","Status Pulang","Izin Keluar","Masuk Kembali","Lambat Izin","Potongan Izin","Tidak Hadir","Alasan","Lembur","Ket. Lembur","Lokasi"]],
     body:rows,
     styles:{fontSize:8,cellPadding:2},
     headStyles:{fillColor:[15,23,42]},
@@ -1206,7 +1341,7 @@ function buildPDF(){
     doc.text("Denda per menit: "+formatRupiah(getFinePerMinute()),14,23);
     doc.autoTable({
       startY:30,
-      head:[["Nama","Cabang/Gudang","Bulan","Hari Telat","Total Menit","Denda/Menit","Total Potongan","Riwayat Telat"]],
+      head:[["Nama","Cabang/Gudang","Bulan","Hari Telat","Telat Masuk","Lambat Izin","Denda/Menit","Total Potongan","Riwayat Potongan"]],
       body:penaltyRowsForPdf.map(r=>[
         safe(r.name),safe(r.branch),safe(r.month),r.late_days+" hari",r.total_minutes+" menit",formatRupiah(r.fine_per_minute),formatRupiah(r.total_fine),
         r.details.map(d=>`${d.date} ${d.check_in} = ${d.minutes} menit`).join("\\n")
