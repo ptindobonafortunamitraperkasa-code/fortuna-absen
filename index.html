@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+a<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -76,6 +76,14 @@ video{max-width:100%;border-radius:18px;background:#0f172a;object-fit:cover;bord
 button{width:100%;margin:5px 0}
 input,select{width:100%}
 }
+
+/* === ENTERPRISE CLEAN PREMIUM + DARK MODE === */
+:root{
+  --bg:#f4f7fb;--bg-soft:#eef3fb;--card:#ffffff;--card-2:#f8fafc;--text:#071225;--muted:#64748b;--line:#e5eaf3;--sidebar:#ffffff;--sidebar-text:#10203b;--primary:#0f172a;--primary-2:#1d4ed8;--gold:#c89b2c;--danger-bg:#fee2e2;--danger:#991b1b;--soft-bg:#eef4ff;--soft-text:#1d4ed8;--green-bg:#dcfce7;--green-text:#166534;--orange-bg:#ffedd5;--orange-text:#9a3412;--shadow:0 16px 40px rgba(15,23,42,.08);--shadow-soft:0 8px 26px rgba(15,23,42,.06)
+}
+body.dark{--bg:#08111f;--bg-soft:#0f172a;--card:#111c2f;--card-2:#0b1628;--text:#e5eefb;--muted:#9fb0c8;--line:#23324a;--sidebar:#061020;--sidebar-text:#e5eefb;--primary:#2563eb;--primary-2:#60a5fa;--gold:#d6a326;--danger-bg:#3b1116;--danger:#fecaca;--soft-bg:#132444;--soft-text:#bfdbfe;--green-bg:#0f2e21;--green-text:#bbf7d0;--orange-bg:#33200c;--orange-text:#fed7aa;--shadow:0 18px 45px rgba(0,0,0,.32);--shadow-soft:0 10px 28px rgba(0,0,0,.25)}
+body{background:radial-gradient(circle at top right,rgba(37,99,235,.08),transparent 32%),linear-gradient(135deg,var(--bg),var(--bg-soft))!important;color:var(--text)!important;transition:.25s ease}
+.login{background:radial-gradient(circle at top left,rgba(200,155,44,.18),transparent 35%),linear-gradient(135deg,var(--bg-soft),var(--bg))!important}.login-card,.card,.topbar,.preview-box{background:rgba(255,255,255,.92)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow-soft)!important;color:var(--text)!important;backdrop-filter:blur(12px)}body.dark .login-card,body.dark .card,body.dark .topbar,body.dark .preview-box{background:rgba(17,28,47,.92)!important}.card,.topbar{border-radius:26px!important}.sidebar{background:var(--sidebar)!important;color:var(--sidebar-text)!important;border-right:1px solid var(--line)!important;box-shadow:8px 0 30px rgba(15,23,42,.04)!important}body.dark .sidebar{background:linear-gradient(180deg,#061020,#0b1628)!important}.side-title,.logo,.topbar h2,.card h2,.card h3,.stat h1,.preview-head h3{color:var(--text)!important}.side-sub,.muted,.stat p{color:var(--muted)!important}.version{background:linear-gradient(135deg,#0f172a,#1e293b)!important;color:#fff!important}body.dark .version{background:linear-gradient(135deg,var(--gold),#8a6a1b)!important;color:#061020!important}.nav button{color:var(--sidebar-text)!important;border:1px solid transparent!important}.nav button.active,.nav button:hover{background:var(--soft-bg)!important;color:var(--soft-text)!important;border-color:rgba(37,99,235,.12)!important}.primary{background:linear-gradient(135deg,var(--primary),#16233a)!important;color:#fff!important}.goldbtn{background:linear-gradient(135deg,var(--gold),#d8aa35)!important;color:#fff!important}.danger{background:var(--danger-bg)!important;color:var(--danger)!important}.soft{background:var(--soft-bg)!important;color:var(--soft-text)!important}input,select{background:var(--card)!important;color:var(--text)!important;border-color:var(--line)!important}th{background:var(--card-2)!important;color:var(--muted)!important}td,th{border-bottom-color:var(--line)!important;color:var(--text)}.today-item,.scan-status{background:var(--card-2)!important;border-color:var(--line)!important;color:var(--text)!important}.notice{background:var(--orange-bg)!important;color:var(--orange-text)!important}.ok{background:var(--green-bg)!important;color:var(--green-text)!important}.no{background:var(--danger-bg)!important;color:var(--danger)!important}.warn{background:var(--orange-bg)!important;color:var(--orange-text)!important}.theme-toggle{background:var(--soft-bg)!important;color:var(--soft-text)!important;border:1px solid var(--line)!important;min-width:118px}.top-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}@media(max-width:800px){.top-actions button{width:100%}}
 </style>
 </head>
 
@@ -132,7 +140,7 @@ input,select{width:100%}
         <h2 id="welcome" style="margin:0"></h2>
         <div style="color:#64748b;font-size:13px">Pantau absensi, wajah, lokasi, tidak hadir, dan lembur secara online.</div>
       </div>
-      <button class="danger" onclick="logout()">Logout</button>
+      <div class="top-actions"><button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn">🌙 Dark</button><button class="danger" onclick="logout()">Logout</button></div>
     </div>
 
     <section id="dashboardPage">
@@ -369,6 +377,19 @@ input,select{width:100%}
 </div>
 
 <script>
+function applyThemeFromStorage(){
+  const saved = localStorage.getItem("fortunaTheme");
+  if(saved === "dark") document.body.classList.add("dark");
+  else document.body.classList.remove("dark");
+  const btn = document.getElementById("themeToggleBtn");
+  if(btn) btn.innerText = document.body.classList.contains("dark") ? "☀️ Light" : "🌙 Dark";
+}
+function toggleTheme(){
+  document.body.classList.toggle("dark");
+  localStorage.setItem("fortunaTheme", document.body.classList.contains("dark") ? "dark" : "light");
+  applyThemeFromStorage();
+}
+applyThemeFromStorage();
 const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
