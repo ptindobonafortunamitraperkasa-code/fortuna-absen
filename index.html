@@ -108,12 +108,13 @@ input,select{width:100%}
   <aside class="sidebar">
     <div class="side-title">Fortuna <span class="gold">Absen</span></div>
     <div class="side-sub">Corporate Attendance System</div>
-    <div class="version">VERSI FINAL + JAM PULANG CABANG</div>
+    <div class="version">VERSI FINAL + DENDA TELAT BULANAN</div>
 
     <div id="adminNav" class="nav hidden">
       <button class="active" onclick="showPage('dashboardPage',this)">Dashboard</button>
       <button onclick="showPage('employeePage',this)">Data Karyawan</button>
       <button onclick="showPage('attendancePage',this)">Data Absen & Export</button>
+      <button onclick="showPage('penaltyPage',this); renderPenaltyReport()">Rekap Denda Telat</button>
       <button onclick="showPage('workSettingPage',this)">Jam Kerja Cabang</button>
       <button onclick="exportPDF('download')">Download PDF</button>
       <button onclick="logout()">Logout</button>
@@ -258,6 +259,42 @@ input,select{width:100%}
             </tr>
           </thead>
           <tbody id="attendanceTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+
+
+    <section id="penaltyPage" class="hidden">
+      <div class="card">
+        <h2>Rekap Telat & Denda Bulanan</h2>
+        <p class="muted">Fitur ini menghitung total menit terlambat per karyawan dalam 1 bulan, lalu otomatis mengalikan dengan nominal denda per menit yang diatur admin.</p>
+        <div class="form-grid">
+          <input id="penaltyMonth" type="month" onchange="renderPenaltyReport()">
+          <input id="finePerMinute" type="number" min="0" step="500" placeholder="Denda per menit, contoh 1000">
+          <select id="penaltyBranch" onchange="renderPenaltyReport()">
+            <option value="all">Semua Cabang / Gudang</option>
+          </select>
+          <button class="goldbtn" onclick="saveFineSetting()">Simpan Setting Denda</button>
+          <button class="primary" onclick="renderPenaltyReport()">Hitung Rekap</button>
+          <button class="soft" onclick="exportPenaltyPDF()">Export PDF Denda</button>
+        </div>
+        <div class="notice">Contoh: denda Rp 1.000/menit. Kalau total telat 30 menit dalam 1 bulan, potongan otomatis Rp 30.000.</div>
+      </div>
+
+      <div class="grid">
+        <div class="card stat"><p>Total Karyawan Telat</p><h1 id="penaltyEmpCount">0</h1></div>
+        <div class="card stat"><p>Total Menit Telat</p><h1 id="penaltyTotalMinutes">0</h1></div>
+        <div class="card stat"><p>Total Potongan</p><h1 id="penaltyTotalMoney">Rp 0</h1></div>
+      </div>
+
+      <div class="card scroll">
+        <h2>Ringkasan Potongan per Karyawan</h2>
+        <table>
+          <thead>
+            <tr><th>Nama</th><th>Cabang</th><th>Bulan</th><th>Jumlah Hari Telat</th><th>Total Menit Telat</th><th>Denda / Menit</th><th>Total Potongan</th><th>Riwayat Telat</th></tr>
+          </thead>
+          <tbody id="penaltyTable"></tbody>
         </table>
       </div>
     </section>
@@ -438,7 +475,7 @@ function calculateCheckout(branch, timeText){
 function logout(){location.reload()}
 
 function showPage(id,btn){
-  ["dashboardPage","employeePage","attendancePage","workSettingPage","employeeHomePage"].forEach(x=>{
+  ["dashboardPage","employeePage","attendancePage","workSettingPage","penaltyPage","employeeHomePage"].forEach(x=>{
     const el=document.getElementById(x); if(el) el.classList.add("hidden");
   });
   document.getElementById(id).classList.remove("hidden");
@@ -499,6 +536,8 @@ async function loadAdmin(){
   renderEmployees();
   renderFilterBranches();
   renderFilterEmployees();
+  renderPenaltyBranches();
+  renderPenaltyDefaults();
   renderWorkSettings();
   renderAttendance();
 }
@@ -916,6 +955,141 @@ async function saveOvertime(){
   await loadMyAttendance();
 }
 
+
+function formatRupiah(num){
+  num = Number(num || 0);
+  return "Rp " + num.toLocaleString("id-ID");
+}
+function getFinePerMinute(){
+  return Number(localStorage.getItem("fortuna_fine_per_minute") || 1000);
+}
+function getCurrentMonth(){
+  return new Date().toISOString().slice(0,7);
+}
+function renderPenaltyDefaults(){
+  if(document.getElementById("finePerMinute")) finePerMinute.value = getFinePerMinute();
+  if(document.getElementById("penaltyMonth") && !penaltyMonth.value) penaltyMonth.value = getCurrentMonth();
+}
+function saveFineSetting(){
+  const value = Number(finePerMinute.value || 0);
+  if(value < 0) return alert("Denda per menit tidak boleh minus");
+  localStorage.setItem("fortuna_fine_per_minute", String(value));
+  alert("Setting denda berhasil disimpan: " + formatRupiah(value) + " per menit");
+  renderPenaltyReport();
+}
+function renderPenaltyBranches(){
+  if(!document.getElementById("penaltyBranch")) return;
+  const branches=[...new Set(allEmployees.map(e=>(e.branch||"").trim()).filter(Boolean))].sort();
+  penaltyBranch.innerHTML = `<option value="all">Semua Cabang / Gudang</option>` + branches.map(b=>`<option value="${b}">${b}</option>`).join("");
+}
+function getPenaltyReport(){
+  const month = document.getElementById("penaltyMonth")?.value || getCurrentMonth();
+  const branchFilter = document.getElementById("penaltyBranch")?.value || "all";
+  const fine = getFinePerMinute();
+  const report = {};
+
+  allAttendance.forEach(a=>{
+    if(!a.date || !String(a.date).startsWith(month)) return;
+    if((a.status||"hadir") === "tidak_hadir") return;
+    if((a.punctuality_status||"") !== "late") return;
+    if(branchFilter !== "all" && (a.branch||"") !== branchFilter) return;
+
+    const minutes = Number(a.punctuality_minutes || 0);
+    if(minutes <= 0) return;
+    const key = a.employee_id || a.employee_name || "unknown";
+    if(!report[key]){
+      report[key] = {
+        employee_id:a.employee_id,
+        name:a.employee_name || "-",
+        branch:a.branch || "-",
+        month,
+        late_days:0,
+        total_minutes:0,
+        fine_per_minute:fine,
+        total_fine:0,
+        details:[]
+      };
+    }
+    report[key].late_days += 1;
+    report[key].total_minutes += minutes;
+    report[key].details.push({
+      date:a.date,
+      check_in:a.check_in || "-",
+      minutes,
+      label:a.punctuality_label || (`Terlambat ${minutes} menit`)
+    });
+  });
+
+  return Object.values(report).map(r=>{
+    r.total_fine = r.total_minutes * fine;
+    r.details.sort((x,y)=>String(x.date).localeCompare(String(y.date)));
+    return r;
+  }).sort((a,b)=>b.total_minutes-a.total_minutes || String(a.name).localeCompare(String(b.name)));
+}
+function renderPenaltyReport(){
+  renderPenaltyDefaults();
+  const rows = getPenaltyReport();
+  const totalMinutes = rows.reduce((s,r)=>s+r.total_minutes,0);
+  const totalMoney = rows.reduce((s,r)=>s+r.total_fine,0);
+
+  if(document.getElementById("penaltyEmpCount")) penaltyEmpCount.innerText = rows.length;
+  if(document.getElementById("penaltyTotalMinutes")) penaltyTotalMinutes.innerText = totalMinutes;
+  if(document.getElementById("penaltyTotalMoney")) penaltyTotalMoney.innerText = formatRupiah(totalMoney);
+  if(!document.getElementById("penaltyTable")) return;
+
+  penaltyTable.innerHTML = rows.length ? rows.map(r=>`
+    <tr>
+      <td>${safe(r.name)}</td>
+      <td>${safe(r.branch)}</td>
+      <td>${safe(r.month)}</td>
+      <td>${r.late_days} hari</td>
+      <td><b>${r.total_minutes} menit</b></td>
+      <td>${formatRupiah(r.fine_per_minute)}</td>
+      <td><b>${formatRupiah(r.total_fine)}</b></td>
+      <td>${r.details.map(d=>`${d.date} (${d.check_in}) = ${d.minutes} menit`).join("<br>")}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="8" class="muted">Belum ada data terlambat pada bulan/filter ini.</td></tr>`;
+}
+function buildPenaltyPDF(){
+  renderPenaltyDefaults();
+  const rows = getPenaltyReport();
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF("landscape");
+  const month = document.getElementById("penaltyMonth")?.value || getCurrentMonth();
+  const branchFilter = document.getElementById("penaltyBranch")?.value || "all";
+  const totalMinutes = rows.reduce((s,r)=>s+r.total_minutes,0);
+  const totalMoney = rows.reduce((s,r)=>s+r.total_fine,0);
+
+  doc.setFontSize(18);
+  doc.text("Laporan Potongan Telat Bulanan",14,15);
+  doc.setFontSize(10);
+  doc.text("Bulan: " + month,14,23);
+  doc.text("Cabang/Gudang: " + (branchFilter==="all"?"Semua Cabang / Gudang":branchFilter),14,29);
+  doc.text("Denda per menit: " + formatRupiah(getFinePerMinute()),14,35);
+  doc.text("Tanggal cetak: " + new Date().toLocaleString("id-ID"),14,41);
+  doc.text("Total menit telat: " + totalMinutes + " menit",14,47);
+  doc.text("Total potongan: " + formatRupiah(totalMoney),14,53);
+
+  doc.autoTable({
+    startY:62,
+    head:[["Nama","Cabang/Gudang","Bulan","Hari Telat","Total Menit","Denda/Menit","Total Potongan","Riwayat Telat"]],
+    body:rows.map(r=>[
+      safe(r.name), safe(r.branch), safe(r.month), r.late_days+" hari", r.total_minutes+" menit", formatRupiah(r.fine_per_minute), formatRupiah(r.total_fine),
+      r.details.map(d=>`${d.date} ${d.check_in} = ${d.minutes} menit`).join("\n")
+    ]),
+    styles:{fontSize:8,cellPadding:2,overflow:"linebreak"},
+    headStyles:{fillColor:[15,23,42]},
+    alternateRowStyles:{fillColor:[248,250,252]},
+    columnStyles:{7:{cellWidth:70}}
+  });
+  return doc;
+}
+function exportPenaltyPDF(){
+  const doc = buildPenaltyPDF();
+  const month = document.getElementById("penaltyMonth")?.value || getCurrentMonth();
+  doc.save("laporan_denda_telat_"+month+".pdf");
+}
+
 function buildPDF(){
   const data=getFilteredAttendance();
   const {jsPDF}=window.jspdf;
@@ -975,6 +1149,28 @@ function buildPDF(){
     headStyles:{fillColor:[15,23,42]},
     alternateRowStyles:{fillColor:[248,250,252]}
   });
+
+  const penaltyRowsForPdf = getPenaltyReport();
+  if(penaltyRowsForPdf.length){
+    doc.addPage("landscape");
+    doc.setFontSize(16);
+    doc.text("Rekap Denda Telat Bulanan",14,15);
+    doc.setFontSize(10);
+    doc.text("Denda per menit: "+formatRupiah(getFinePerMinute()),14,23);
+    doc.autoTable({
+      startY:30,
+      head:[["Nama","Cabang/Gudang","Bulan","Hari Telat","Total Menit","Denda/Menit","Total Potongan","Riwayat Telat"]],
+      body:penaltyRowsForPdf.map(r=>[
+        safe(r.name),safe(r.branch),safe(r.month),r.late_days+" hari",r.total_minutes+" menit",formatRupiah(r.fine_per_minute),formatRupiah(r.total_fine),
+        r.details.map(d=>`${d.date} ${d.check_in} = ${d.minutes} menit`).join("
+")
+      ]),
+      styles:{fontSize:8,cellPadding:2,overflow:"linebreak"},
+      headStyles:{fillColor:[15,23,42]},
+      alternateRowStyles:{fillColor:[248,250,252]},
+      columnStyles:{7:{cellWidth:70}}
+    });
+  }
   return doc;
 }
 
