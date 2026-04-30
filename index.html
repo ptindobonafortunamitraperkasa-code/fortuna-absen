@@ -45,7 +45,7 @@ a{color:#2563eb;text-decoration:none;font-weight:700}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:12px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:top}
 th{background:#f8fafc;color:#475569}
-video{max-width:100%;border-radius:18px;background:#0f172a}
+video{max-width:100%;border-radius:18px;background:#0f172a;object-fit:cover;border:3px solid #e5eaf3}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:center}
 .badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800;display:inline-block}
 .ok{background:#dcfce7;color:#166534}
@@ -786,19 +786,19 @@ function renderMyAttendance(){
 
 async function startCamera(){
   try{
-    setScanStatus("Membuka kamera... izinkan akses kamera di browser.","busy");
+    setScanStatus("Membuka kamera HD... izinkan akses kamera di browser.","busy");
     if(stream){stream.getTracks().forEach(t=>t.stop());}
     stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:"user",width:{ideal:240},height:{ideal:180},frameRate:{ideal:15,max:20}},
+      video:{facingMode:"user",width:{ideal:640},height:{ideal:480},frameRate:{ideal:24,max:30}},
       audio:false
     });
-   video.srcObject=stream;
-video.style.transform = "scaleX(-1)";
-video.style.webkitTransform = "scaleX(-1)";
+    video.srcObject=stream;
+    video.style.transform = "scaleX(-1)";
+    video.style.webkitTransform = "scaleX(-1)";
     const ok=await waitVideoReady();
     cameraReady=ok;
     if(ok){
-      setScanStatus(modelsReady?"Siap digunakan. Kamera dan model wajah sudah aktif.":"Kamera aktif. Model wajah masih loading...","ready");
+      setScanStatus(modelsReady?"Siap digunakan. Kamera HD dan model wajah sudah aktif.":"Kamera HD aktif. Model wajah masih loading...","ready");
       alert("Kamera berhasil dibuka");
     }else{
       setScanStatus("Kamera terbuka tapi video belum siap. Tutup dan buka ulang kamera.","error");
@@ -814,17 +814,21 @@ video.style.webkitTransform = "scaleX(-1)";
   }
 }
 
-async function getFaceDescriptor(){
-  if(!modelsReady){alert("Model wajah masih loading");return null}
-  if(!video.srcObject || !cameraReady){alert("Buka kamera dulu sampai status siap");return null}
+async function getFaceDescriptor(silent=false){
+  if(!modelsReady){if(!silent) alert("Model wajah masih loading");return null}
+  if(!video.srcObject || !cameraReady){if(!silent) alert("Buka kamera dulu sampai status siap");return null}
   const ready=await waitVideoReady();
-  if(!ready){alert("Video kamera belum siap, klik Buka Kamera lagi");return null}
-  setScanStatus("Sedang membaca wajah... posisikan wajah di tengah kamera.","busy");
+  if(!ready){if(!silent) alert("Video kamera belum siap, klik Buka Kamera lagi");return null}
+  await sleep(500);
+  setScanStatus("Sedang membaca wajah... hadapkan wajah ke kamera, jangan terlalu dekat, cahaya harus terang.","busy");
   const detection=await faceapi
-    .detectSingleFace(video,new faceapi.TinyFaceDetectorOptions({inputSize:160,scoreThreshold:0.5}))
+    .detectSingleFace(video,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.35}))
     .withFaceLandmarks()
     .withFaceDescriptor();
-  if(!detection){alert("Wajah tidak terdeteksi. Dekatkan wajah dan pastikan cahaya cukup.");return null}
+  if(!detection){
+    if(!silent) alert("Wajah tidak terdeteksi. Pastikan wajah terlihat penuh, cahaya terang, dan jangan terlalu dekat kamera.");
+    return null;
+  }
   return Array.from(detection.descriptor);
 }
 
@@ -842,10 +846,32 @@ async function registerFace(){
 function distance(a,b){let sum=0; for(let i=0;i<a.length;i++)sum+=(a[i]-b[i])*(a[i]-b[i]); return Math.sqrt(sum);}
 
 async function verifyFace(){
-  const live=await getFaceDescriptor();
-  if(!live)return false;
-  if(!currentUser.face_descriptor){alert("Wajah belum didaftarkan");return false}
-  return distance(live,currentUser.face_descriptor)<0.55;
+  if(!currentUser.face_descriptor){
+    alert("Wajah belum didaftarkan. Silakan daftar wajah dulu.");
+    return false;
+  }
+
+  let bestDistance=999;
+  let passed=false;
+
+  for(let i=1;i<=3;i++){
+    setScanStatus(`Verifikasi wajah percobaan ${i}/3... tetap hadap kamera.`,"busy");
+    const live=await getFaceDescriptor(true);
+    if(!live) continue;
+    const d=distance(live,currentUser.face_descriptor);
+    bestDistance=Math.min(bestDistance,d);
+    if(d < 0.68){
+      passed=true;
+      break;
+    }
+    await sleep(350);
+  }
+
+  if(!passed){
+    alert(`Wajah belum cocok. Nilai scan terbaik: ${bestDistance===999?"tidak terbaca":bestDistance.toFixed(3)}. Coba di tempat lebih terang, wajah jangan miring, lalu buka kamera ulang.`);
+    return false;
+  }
+  return true;
 }
 
 async function requireLocation(){
