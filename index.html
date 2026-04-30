@@ -1162,8 +1162,7 @@ function buildPDF(){
       head:[["Nama","Cabang/Gudang","Bulan","Hari Telat","Total Menit","Denda/Menit","Total Potongan","Riwayat Telat"]],
       body:penaltyRowsForPdf.map(r=>[
         safe(r.name),safe(r.branch),safe(r.month),r.late_days+" hari",r.total_minutes+" menit",formatRupiah(r.fine_per_minute),formatRupiah(r.total_fine),
-        r.details.map(d=>`${d.date} ${d.check_in} = ${d.minutes} menit`).join("
-")
+        r.details.map(d=>`${d.date} ${d.check_in} = ${d.minutes} menit`).join("\\n")
       ]),
       styles:{fontSize:8,cellPadding:2,overflow:"linebreak"},
       headStyles:{fillColor:[15,23,42]},
