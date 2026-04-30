@@ -172,7 +172,7 @@ input,select{width:100%}
       <div class="card scroll">
         <h2>Daftar Setting Jam Cabang</h2>
         <table>
-          <thead><tr><th>Cabang/Gudang</th><th>Jam Masuk Standar</th><th>Batas Telat</th><th>Jam Pulang</th><th>Batas Izin Keluar</th><th>Denda Izin/Menit</th><th>Status</th></tr></thead>
+          <thead><tr><th>Cabang/Gudang</th><th>Jam Masuk Standar</th><th>Batas Telat</th><th>Jam Pulang</th><th>Batas Izin Keluar</th><th>Denda Izin/Menit</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="workSettingsTable"></tbody>
         </table>
       </div>
@@ -653,9 +653,50 @@ function renderWorkSettings(){
     workSettingsTable.innerHTML = branches.map(b=>{
       const st=getWorkSetting(b);
       const saved=workSettings.some(x=>(x.branch||"").trim()===b);
-      return `<tr><td>${b}</td><td>${st.start_time||"07:45"}</td><td>${st.late_time||"08:00"}</td><td>${st.end_time||"17:00"}</td><td>${st.break_limit_minutes||60} menit</td><td>${formatRupiah(st.break_fine_per_minute||getFinePerMinute())}</td><td>${saved?"Tersimpan":"Default"}</td></tr>`;
-    }).join("") || `<tr><td colspan="7" class="muted">Belum ada cabang/gudang.</td></tr>`;
+      const encoded=encodeURIComponent(b);
+      return `<tr>
+        <td>${b}</td>
+        <td>${st.start_time||"07:45"}</td>
+        <td>${st.late_time||"08:00"}</td>
+        <td>${st.end_time||"17:00"}</td>
+        <td>${st.break_limit_minutes||60} menit</td>
+        <td>${formatRupiah(st.break_fine_per_minute||getFinePerMinute())}</td>
+        <td>${saved?"Tersimpan":"Default"}</td>
+        <td>
+          <button class="soft" onclick="editWorkSetting('${encoded}')">Edit</button>
+          <button class="danger" onclick="deleteWorkSetting('${encoded}',${saved})">Hapus</button>
+        </td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="8" class="muted">Belum ada cabang/gudang.</td></tr>`;
   }
+}
+
+function editWorkSetting(encodedBranch){
+  const branch=decodeURIComponent(encodedBranch||"");
+  if(!branch)return;
+  if(document.getElementById("workBranchSelect")){
+    workBranchSelect.value=branch;
+    const st=getWorkSetting(branch);
+    workStartTime.value=st.start_time||"07:45";
+    workLateTime.value=st.late_time||"08:00";
+    if(document.getElementById("workEndTime")) workEndTime.value=st.end_time||"17:00";
+    if(document.getElementById("workBreakLimit")) workBreakLimit.value=st.break_limit_minutes||60;
+    if(document.getElementById("workBreakFine")) workBreakFine.value=st.break_fine_per_minute||getFinePerMinute();
+  }
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+async function deleteWorkSetting(encodedBranch,isSaved){
+  const branch=decodeURIComponent(encodedBranch||"");
+  if(!branch)return alert("Cabang tidak ditemukan");
+  if(!isSaved)return alert("Setting cabang ini masih Default, belum ada data tersimpan yang bisa dihapus.");
+  const ok=confirm(`Yakin hapus setting jam kerja cabang ${branch}?\n\nSetelah dihapus, cabang ini akan kembali memakai setting default: 07:45 / 08:00 / 17:00 / izin 60 menit.`);
+  if(!ok)return;
+  const {error}=await db.from("branch_work_settings").delete().eq("branch",branch);
+  if(error){console.error(error);return alert("Gagal hapus setting jam kerja. Cek RLS/policy Supabase.");}
+  alert("Setting jam kerja berhasil dihapus. Cabang kembali ke setting default.");
+  await loadAdmin();
+}
 }
 
 async function saveWorkSetting(){
