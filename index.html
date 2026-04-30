@@ -429,7 +429,13 @@ async function runLocked(message,fn){
 }
 
 function today(){return new Date().toISOString().slice(0,10)}
-function nowTime(){return new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
+function nowTime(){
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2,"0");
+  const m = String(d.getMinutes()).padStart(2,"0");
+  const sec = String(d.getSeconds()).padStart(2,"0");
+  return `${h}:${m}:${sec}`;
+}
 function safe(v){return (v===null||v===undefined||v==="")?"-":v}
 function statusBadge(status){
   if(status==="tidak_hadir") return `<span class="badge no">Tidak Hadir</span>`;
@@ -442,22 +448,37 @@ function punctualityBadge(status,label){
   return `<span class="badge warn">Belum Ada</span>`;
 }
 function timeToMinutes(t){
-  if(!t || !String(t).includes(":"))return null;
-  const [h,m]=String(t).slice(0,5).split(":").map(Number);
-  return (h*60)+m;
+  if(!t) return null;
+  const clean = String(t).trim().replaceAll(".",":");
+  if(!clean.includes(":")) return null;
+  const [h,m] = clean.slice(0,5).split(":").map(Number);
+  if(Number.isNaN(h) || Number.isNaN(m)) return null;
+  return (h * 60) + m;
 }
 function getWorkSetting(branch){
   const b=(branch||"").trim();
   return workSettings.find(x=>(x.branch||"").trim()===b) || {branch:b,start_time:"07:45",late_time:"08:00",end_time:"17:00"};
 }
 function calculatePunctuality(branch, timeText){
-  const setting=getWorkSetting(branch);
-  const masuk=timeToMinutes(timeText);
-  const start=timeToMinutes(setting.start_time||"07:45");
-  const late=timeToMinutes(setting.late_time||"08:00");
-  if(masuk===null || start===null || late===null) return {status:"unknown",minutes:0,label:"-"};
-  if(masuk < start){const diff=start-masuk; return {status:"early",minutes:diff,label:`Lebih Awal ${diff} menit`};}
-  if(masuk > late){const diff=masuk-late; return {status:"late",minutes:diff,label:`Terlambat ${diff} menit`};}
+  const setting = getWorkSetting(branch);
+  const masuk = timeToMinutes(timeText);
+  const start = timeToMinutes(setting.start_time || "07:45");
+  const late = timeToMinutes(setting.late_time || "08:00");
+
+  if(masuk === null || start === null || late === null){
+    return {status:"unknown",minutes:0,label:"Belum Ada"};
+  }
+
+  if(masuk < start){
+    const diff = start - masuk;
+    return {status:"early",minutes:diff,label:`Lebih Awal ${diff} menit`};
+  }
+
+  if(masuk > late){
+    const diff = masuk - late;
+    return {status:"late",minutes:diff,label:`Terlambat ${diff} menit`};
+  }
+
   return {status:"ontime",minutes:0,label:"Tepat Waktu"};
 }
 function checkoutBadge(status,label){
