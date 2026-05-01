@@ -1,4 +1,4 @@
-a<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -68,6 +68,17 @@ video{max-width:100%;border-radius:18px;background:#0f172a;object-fit:cover;bord
 .preview-head{padding:14px 18px;border-bottom:1px solid #e5eaf3;display:flex;justify-content:space-between;align-items:center}
 .preview-head h3{margin:0}
 #pdfPreviewFrame{width:100%;height:100%;border:0;background:#f8fafc}
+
+/* MODAL EDIT ABSEN ADMIN */
+.modal-wrap{position:fixed;inset:0;background:#0f172acc;z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px}
+.modal-box{width:min(620px,96vw);background:#fff;color:#0f172a;border-radius:24px;box-shadow:0 30px 90px #0006;overflow:hidden}
+.modal-head{padding:18px 22px;border-bottom:1px solid #e5eaf3;display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{margin:0;font-size:20px}
+.modal-body{padding:20px 22px}
+.modal-note{background:#fff7ed;color:#9a3412;border-radius:14px;padding:10px 12px;font-size:12px;font-weight:700;margin:10px 0}
+.modal-actions{padding:16px 22px;border-top:1px solid #e5eaf3;display:flex;gap:10px;justify-content:flex-end}
+.edit-badge{display:block;margin-top:6px;font-size:11px;color:#7c2d12;background:#ffedd5;border-radius:10px;padding:5px 8px;font-weight:800}
+
 @media(max-width:800px){
 .sidebar{position:relative;width:100%;height:auto}
 .app{display:block}
@@ -76,14 +87,6 @@ video{max-width:100%;border-radius:18px;background:#0f172a;object-fit:cover;bord
 button{width:100%;margin:5px 0}
 input,select{width:100%}
 }
-
-/* === ENTERPRISE CLEAN PREMIUM + DARK MODE === */
-:root{
-  --bg:#f4f7fb;--bg-soft:#eef3fb;--card:#ffffff;--card-2:#f8fafc;--text:#071225;--muted:#64748b;--line:#e5eaf3;--sidebar:#ffffff;--sidebar-text:#10203b;--primary:#0f172a;--primary-2:#1d4ed8;--gold:#c89b2c;--danger-bg:#fee2e2;--danger:#991b1b;--soft-bg:#eef4ff;--soft-text:#1d4ed8;--green-bg:#dcfce7;--green-text:#166534;--orange-bg:#ffedd5;--orange-text:#9a3412;--shadow:0 16px 40px rgba(15,23,42,.08);--shadow-soft:0 8px 26px rgba(15,23,42,.06)
-}
-body.dark{--bg:#08111f;--bg-soft:#0f172a;--card:#111c2f;--card-2:#0b1628;--text:#e5eefb;--muted:#9fb0c8;--line:#23324a;--sidebar:#061020;--sidebar-text:#e5eefb;--primary:#2563eb;--primary-2:#60a5fa;--gold:#d6a326;--danger-bg:#3b1116;--danger:#fecaca;--soft-bg:#132444;--soft-text:#bfdbfe;--green-bg:#0f2e21;--green-text:#bbf7d0;--orange-bg:#33200c;--orange-text:#fed7aa;--shadow:0 18px 45px rgba(0,0,0,.32);--shadow-soft:0 10px 28px rgba(0,0,0,.25)}
-body{background:radial-gradient(circle at top right,rgba(37,99,235,.08),transparent 32%),linear-gradient(135deg,var(--bg),var(--bg-soft))!important;color:var(--text)!important;transition:.25s ease}
-.login{background:radial-gradient(circle at top left,rgba(200,155,44,.18),transparent 35%),linear-gradient(135deg,var(--bg-soft),var(--bg))!important}.login-card,.card,.topbar,.preview-box{background:rgba(255,255,255,.92)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow-soft)!important;color:var(--text)!important;backdrop-filter:blur(12px)}body.dark .login-card,body.dark .card,body.dark .topbar,body.dark .preview-box{background:rgba(17,28,47,.92)!important}.card,.topbar{border-radius:26px!important}.sidebar{background:var(--sidebar)!important;color:var(--sidebar-text)!important;border-right:1px solid var(--line)!important;box-shadow:8px 0 30px rgba(15,23,42,.04)!important}body.dark .sidebar{background:linear-gradient(180deg,#061020,#0b1628)!important}.side-title,.logo,.topbar h2,.card h2,.card h3,.stat h1,.preview-head h3{color:var(--text)!important}.side-sub,.muted,.stat p{color:var(--muted)!important}.version{background:linear-gradient(135deg,#0f172a,#1e293b)!important;color:#fff!important}body.dark .version{background:linear-gradient(135deg,var(--gold),#8a6a1b)!important;color:#061020!important}.nav button{color:var(--sidebar-text)!important;border:1px solid transparent!important}.nav button.active,.nav button:hover{background:var(--soft-bg)!important;color:var(--soft-text)!important;border-color:rgba(37,99,235,.12)!important}.primary{background:linear-gradient(135deg,var(--primary),#16233a)!important;color:#fff!important}.goldbtn{background:linear-gradient(135deg,var(--gold),#d8aa35)!important;color:#fff!important}.danger{background:var(--danger-bg)!important;color:var(--danger)!important}.soft{background:var(--soft-bg)!important;color:var(--soft-text)!important}input,select{background:var(--card)!important;color:var(--text)!important;border-color:var(--line)!important}th{background:var(--card-2)!important;color:var(--muted)!important}td,th{border-bottom-color:var(--line)!important;color:var(--text)}.today-item,.scan-status{background:var(--card-2)!important;border-color:var(--line)!important;color:var(--text)!important}.notice{background:var(--orange-bg)!important;color:var(--orange-text)!important}.ok{background:var(--green-bg)!important;color:var(--green-text)!important}.no{background:var(--danger-bg)!important;color:var(--danger)!important}.warn{background:var(--orange-bg)!important;color:var(--orange-text)!important}.theme-toggle{background:var(--soft-bg)!important;color:var(--soft-text)!important;border:1px solid var(--line)!important;min-width:118px}.top-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}@media(max-width:800px){.top-actions button{width:100%}}
 </style>
 </head>
 
@@ -108,6 +111,30 @@ body{background:radial-gradient(circle at top right,rgba(37,99,235,.08),transpar
       </div>
     </div>
     <iframe id="pdfPreviewFrame"></iframe>
+  </div>
+</div>
+
+<div id="editAttendanceModal" class="modal-wrap hidden">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Jam Absen</h3>
+      <button class="danger" onclick="closeEditAttendanceModal()">Tutup</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editAttendanceId">
+      <div class="form-grid">
+        <input id="editAttendanceName" readonly placeholder="Nama karyawan">
+        <input id="editAttendanceDate" readonly placeholder="Tanggal">
+        <input id="editCheckIn" type="time" step="1" placeholder="Jam masuk">
+        <input id="editCheckOut" type="time" step="1" placeholder="Jam pulang">
+      </div>
+      <div class="modal-note">Admin wajib mengisi alasan koreksi. Contoh: sinyal hilang, HP error, atau gangguan jaringan. Sistem akan hitung ulang status telat/pulang otomatis.</div>
+      <textarea id="editAttendanceNote" style="width:100%;min-height:90px" placeholder="Alasan koreksi admin wajib diisi"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="soft" onclick="closeEditAttendanceModal()">Batal</button>
+      <button class="goldbtn" onclick="saveAttendanceCorrection()">Simpan Koreksi</button>
+    </div>
   </div>
 </div>
 
@@ -140,7 +167,7 @@ body{background:radial-gradient(circle at top right,rgba(37,99,235,.08),transpar
         <h2 id="welcome" style="margin:0"></h2>
         <div style="color:#64748b;font-size:13px">Pantau absensi, wajah, lokasi, tidak hadir, dan lembur secara online.</div>
       </div>
-      <div class="top-actions"><button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn">🌙 Dark</button><button class="danger" onclick="logout()">Logout</button></div>
+      <button class="danger" onclick="logout()">Logout</button>
     </div>
 
     <section id="dashboardPage">
@@ -265,7 +292,7 @@ body{background:radial-gradient(circle at top right,rgba(37,99,235,.08),transpar
         <table>
           <thead>
             <tr>
-              <th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Status</th><th>Status Waktu</th><th>Selisih</th><th>Masuk</th><th>Pulang</th><th>Status Pulang</th><th>Izin Keluar</th><th>Masuk Kembali</th><th>Lambat Izin</th><th>Potongan Izin</th><th>Tidak Hadir</th><th>Alasan</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Face</th>
+              <th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Status</th><th>Status Waktu</th><th>Selisih</th><th>Masuk</th><th>Pulang</th><th>Status Pulang</th><th>Izin Keluar</th><th>Masuk Kembali</th><th>Lambat Izin</th><th>Potongan Izin</th><th>Tidak Hadir</th><th>Alasan</th><th>Koreksi Admin</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Face</th><th>Aksi</th>
             </tr>
           </thead>
           <tbody id="attendanceTable"></tbody>
@@ -377,19 +404,6 @@ body{background:radial-gradient(circle at top right,rgba(37,99,235,.08),transpar
 </div>
 
 <script>
-function applyThemeFromStorage(){
-  const saved = localStorage.getItem("fortunaTheme");
-  if(saved === "dark") document.body.classList.add("dark");
-  else document.body.classList.remove("dark");
-  const btn = document.getElementById("themeToggleBtn");
-  if(btn) btn.innerText = document.body.classList.contains("dark") ? "☀️ Light" : "🌙 Dark";
-}
-function toggleTheme(){
-  document.body.classList.toggle("dark");
-  localStorage.setItem("fortunaTheme", document.body.classList.contains("dark") ? "dark" : "light");
-  applyThemeFromStorage();
-}
-applyThemeFromStorage();
 const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -859,6 +873,7 @@ function renderAttendance(){
       <td>${a.break_fine?formatRupiah(a.break_fine):"-"}</td>
       <td>${safe(a.absent_time)}</td>
       <td>${safe(a.absent_note)}</td>
+      <td>${a.edit_note?`<span class="edit-badge">${safe(a.edit_note)}<br>${safe(a.edited_at?new Date(a.edited_at).toLocaleString("id-ID"):"")}</span>`:"-"}</td>
       <td>
         ${a.check_in_photo?`<a href="${a.check_in_photo}" target="_blank">Foto Masuk</a>`:"-"}
         ${a.check_out_photo?`<br><a href="${a.check_out_photo}" target="_blank">Foto Pulang</a>`:""}
@@ -866,8 +881,90 @@ function renderAttendance(){
       <td>${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Lihat Lokasi</a>`:"-"}</td>
       <td>${a.overtime_start&&a.overtime_end?a.overtime_start+" - "+a.overtime_end:"-"}</td>
       <td>${a.face_verified?"✔":"✖"}</td>
+      <td><button class="soft" onclick='openEditAttendanceModal(${JSON.stringify(a)})'>Edit</button></td>
     </tr>
   `).join("");
+}
+
+function normalizeTimeForInput(t){
+  if(!t) return "";
+  return String(t).trim().replaceAll(".",":").slice(0,8);
+}
+
+function openEditAttendanceModal(a){
+  if(!a || !a.id){alert("Data absen tidak valid"); return;}
+  editAttendanceId.value = a.id;
+  editAttendanceName.value = (a.employee_name || "-") + " - " + (a.branch || "-");
+  editAttendanceDate.value = a.date || "";
+  editCheckIn.value = normalizeTimeForInput(a.check_in);
+  editCheckOut.value = normalizeTimeForInput(a.check_out);
+  editAttendanceNote.value = a.edit_note || "";
+  editAttendanceModal.classList.remove("hidden");
+}
+
+function closeEditAttendanceModal(){
+  editAttendanceModal.classList.add("hidden");
+  editAttendanceId.value = "";
+  editAttendanceNote.value = "";
+}
+
+async function saveAttendanceCorrection(){
+  const id = editAttendanceId.value;
+  const note = editAttendanceNote.value.trim();
+  if(!id) return alert("Data absen tidak ditemukan");
+  if(!note) return alert("Alasan koreksi wajib diisi");
+
+  const oldData = allAttendance.find(x=>x.id===id) || {};
+  const newCheckIn = editCheckIn.value || null;
+  const newCheckOut = editCheckOut.value || null;
+  const branch = oldData.branch || "";
+
+  const payload = {
+    check_in: newCheckIn,
+    check_out: newCheckOut,
+    edit_note: note,
+    edited_at: new Date().toISOString(),
+    edited_by: currentUser ? (currentUser.name || currentUser.id || "Admin") : "Admin"
+  };
+
+  if(oldData.original_check_in === undefined || oldData.original_check_in === null){
+    payload.original_check_in = oldData.check_in || null;
+  }
+  if(oldData.original_check_out === undefined || oldData.original_check_out === null){
+    payload.original_check_out = oldData.check_out || null;
+  }
+
+  if(newCheckIn){
+    const p = calculatePunctuality(branch, newCheckIn);
+    payload.punctuality_status = p.status;
+    payload.punctuality_minutes = p.minutes;
+    payload.punctuality_label = p.label;
+  }else{
+    payload.punctuality_status = null;
+    payload.punctuality_minutes = 0;
+    payload.punctuality_label = null;
+  }
+
+  if(newCheckOut){
+    const c = calculateCheckout(branch, newCheckOut);
+    payload.checkout_status = c.status;
+    payload.checkout_minutes = c.minutes;
+    payload.checkout_label = c.label;
+  }else{
+    payload.checkout_status = null;
+    payload.checkout_minutes = 0;
+    payload.checkout_label = null;
+  }
+
+  const {error} = await db.from("attendances").update(payload).eq("id", id);
+  if(error){
+    console.error("EDIT ATTENDANCE ERROR:", error);
+    return alert("Gagal simpan koreksi. Pastikan SQL kolom edit absen sudah dijalankan.");
+  }
+
+  alert("Koreksi jam absen berhasil disimpan dan status telat sudah dihitung ulang");
+  closeEditAttendanceModal();
+  await loadAdmin();
 }
 
 function renderTodayAttendance(){
