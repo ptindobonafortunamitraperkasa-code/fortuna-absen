@@ -128,8 +128,8 @@ input,select{width:100%}
         <input id="editCheckIn" type="time" step="1" placeholder="Jam masuk">
         <input id="editCheckOut" type="time" step="1" placeholder="Jam pulang">
       </div>
-      <div class="modal-note">Admin wajib mengisi alasan koreksi. Contoh: sinyal hilang, HP error, atau gangguan jaringan. Sistem akan hitung ulang status telat/pulang otomatis.</div>
-      <textarea id="editAttendanceNote" style="width:100%;min-height:90px" placeholder="Alasan koreksi admin wajib diisi"></textarea>
+      <div class="modal-note">Admin bisa mengisi alasan koreksi jika diperlukan. Contoh: sinyal hilang, HP error, atau gangguan jaringan. Sistem akan hitung ulang status telat/pulang otomatis.</div>
+      <textarea id="editAttendanceNote" style="width:100%;min-height:90px" placeholder="Keterangan koreksi admin (opsional)"></textarea>
     </div>
     <div class="modal-actions">
       <button class="soft" onclick="closeEditAttendanceModal()">Batal</button>
@@ -912,7 +912,6 @@ async function saveAttendanceCorrection(){
   const id = editAttendanceId.value;
   const note = editAttendanceNote.value.trim();
   if(!id) return alert("Data absen tidak ditemukan");
-  if(!note) return alert("Alasan koreksi wajib diisi");
 
   const oldData = allAttendance.find(x=>x.id===id) || {};
   const newCheckIn = editCheckIn.value || null;
