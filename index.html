@@ -1658,9 +1658,20 @@ function getNextMonthStart(month){
 }
 
 function buildPDF(){
-  const data=getFilteredAttendance();
+  const data=[...getFilteredAttendance()].sort((a,b)=>{
+    const ba=(a.branch||"").trim().toUpperCase();
+    const bb=(b.branch||"").trim().toUpperCase();
+    if(ba!==bb) return ba.localeCompare(bb);
+    const da=(a.date||"");
+    const dbb=(b.date||"");
+    if(da!==dbb) return da.localeCompare(dbb);
+    const na=(a.employee_name||"").trim().toUpperCase();
+    const nb=(b.employee_name||"").trim().toUpperCase();
+    return na.localeCompare(nb);
+  });
   const {jsPDF}=window.jspdf;
-  const doc=new jsPDF("landscape");
+  const doc=new jsPDF("landscape", "mm", "a4");
+
   const start=filterStart?.value || "Semua";
   const end=filterEnd?.value || "Semua";
   const branch=getSelectedBranchText();
@@ -1668,6 +1679,7 @@ function buildPDF(){
   const statusText=filterStatus?.value==="all" ? "Semua Status" : (filterStatus.value==="hadir" ? "Hadir" : "Tidak Hadir");
   const punctualityText=filterPunctuality?.value==="all" ? "Semua Waktu" : (filterPunctuality.value==="early"?"Lebih Awal":filterPunctuality.value==="late"?"Terlambat":"Tepat Waktu");
   const checkoutText=filterCheckout?.value==="early_leave" ? "Pulang Lebih Awal" : "Semua Pulang";
+
   const hadir=data.filter(a=>(a.status||"hadir")!=="tidak_hadir").length;
   const tidak=data.filter(a=>a.status==="tidak_hadir").length;
   const lembur=data.filter(a=>a.overtime_start && a.overtime_end).length;
@@ -1675,66 +1687,159 @@ function buildPDF(){
   const awal=data.filter(a=>a.punctuality_status==="early").length;
   const pulangAwal=data.filter(a=>a.checkout_status==="early_leave").length;
 
-  doc.setFontSize(18);
-  doc.text("Laporan Absensi Fortuna Absen",14,15);
-  doc.setFontSize(10);
-  doc.text("Periode laporan: "+start+" sampai "+end,14,23);
-  doc.text("Filter cabang/gudang: "+branch,14,29);
-  doc.text("Filter karyawan: "+empText,14,35);
-  doc.text("Filter status: "+statusText,14,41);
-  doc.text("Filter waktu: "+punctualityText,14,47);
-  doc.text("Filter pulang: "+checkoutText,14,53);
-  doc.text("Tanggal cetak: "+new Date().toLocaleString("id-ID"),14,59);
+  doc.setFontSize(15);
+  doc.setFont(undefined,"bold");
+  doc.text("Laporan Absensi Fortuna Absen", 14, 13);
+  doc.setFont(undefined,"normal");
+  doc.setFontSize(8);
+  doc.text("Periode: " + start + " s/d " + end, 14, 19);
+  doc.text("Cabang: " + branch, 14, 24);
+  doc.text("Karyawan: " + empText, 14, 29);
+  doc.text("Status: " + statusText + " | Waktu: " + punctualityText + " | Pulang: " + checkoutText, 14, 34);
+  doc.text("Tanggal cetak: " + new Date().toLocaleString("id-ID"), 14, 39);
 
-  doc.setFillColor(15,23,42); doc.roundedRect(14,66,42,16,3,3,"F");
-  doc.setFillColor(200,155,44); doc.roundedRect(60,66,42,16,3,3,"F");
-  doc.setFillColor(153,27,27); doc.roundedRect(106,66,46,16,3,3,"F");
-  doc.setFillColor(30,64,175); doc.roundedRect(156,66,42,16,3,3,"F");
-  doc.setFillColor(194,65,12); doc.roundedRect(202,66,42,16,3,3,"F");
-  doc.setFillColor(120,53,15); doc.roundedRect(248,66,42,16,3,3,"F");
-  doc.setTextColor(255,255,255); doc.setFontSize(8);
-  doc.text("HADIR",18,72); doc.setFontSize(13); doc.text(String(hadir),18,79);
-  doc.setFontSize(8); doc.text("LEMBUR",64,72); doc.setFontSize(13); doc.text(String(lembur),64,79);
-  doc.setFontSize(8); doc.text("TIDAK HADIR",110,72); doc.setFontSize(13); doc.text(String(tidak),110,79);
-  doc.setFontSize(8); doc.text("LEBIH AWAL",160,72); doc.setFontSize(13); doc.text(String(awal),160,79);
-  doc.setFontSize(8); doc.text("TERLAMBAT",206,72); doc.setFontSize(13); doc.text(String(telat),206,79);
-  doc.setFontSize(8); doc.text("PULANG AWAL",252,72); doc.setFontSize(13); doc.text(String(pulangAwal),252,79);
+  const boxY = 44;
+  const boxW = 43;
+  const boxH = 13;
+  const stats = [
+    ["Hadir", hadir],
+    ["Lembur", lembur],
+    ["Tidak Hadir", tidak],
+    ["Lebih Awal", awal],
+    ["Terlambat", telat],
+    ["Pulang Awal", pulangAwal]
+  ];
+
+  stats.forEach((s,i)=>{
+    const x = 14 + (i * 46);
+    doc.setFillColor(i===1 ? 200 : 15, i===1 ? 155 : 23, i===1 ? 44 : 42);
+    doc.roundedRect(x, boxY, boxW, boxH, 2, 2, "F");
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(6.5);
+    doc.text(String(s[0]).toUpperCase(), x+3, boxY+5);
+    doc.setFontSize(10);
+    doc.text(String(s[1]), x+3, boxY+10);
+  });
   doc.setTextColor(0,0,0);
 
-  const rows=data.map(a=>[
-    safe(a.employee_name),safe(a.branch),safe(a.date),(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir",
-    safe(a.punctuality_label),a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-",safe(a.check_in),safe(a.check_out),safe(a.checkout_label),safe(a.break_out),safe(a.break_in),a.break_late_minutes?safe(a.break_late_label):"-",a.break_fine?formatRupiah(a.break_fine):"-",safe(a.absent_time),safe(a.absent_note),
-    a.overtime_start&&a.overtime_end?`${a.overtime_start} - ${a.overtime_end}`:"-",
-    safe(a.overtime_note),a.latitude&&a.longitude?`${a.latitude}, ${a.longitude}`:"-"
-  ]);
-
-  doc.autoTable({
-    startY:90,
-    head:[["Nama","Cabang/Gudang","Tanggal","Status","Status Waktu","Selisih","Masuk","Pulang","Status Pulang","Izin Keluar","Masuk Kembali","Lambat Izin","Potongan Izin","Tidak Hadir","Alasan","Lembur","Ket. Lembur","Lokasi"]],
-    body:rows,
-    styles:{fontSize:8,cellPadding:2},
-    headStyles:{fillColor:[15,23,42]},
-    alternateRowStyles:{fillColor:[248,250,252]}
+  const rows=[];
+  let lastBranch="";
+  data.forEach(a=>{
+    const currentBranch=safe(a.branch);
+    if(currentBranch!==lastBranch){
+      rows.push([
+        "CABANG / GUDANG: " + currentBranch,"","","","","","","","","","","","","","",""
+      ]);
+      lastBranch=currentBranch;
+    }
+    rows.push([
+      safe(a.employee_name),
+      safe(a.branch),
+      safe(a.date),
+      (a.status||"hadir")==="tidak_hadir" ? "Tidak Hadir" : "Hadir",
+      safe(a.punctuality_label),
+      a.punctuality_status ? safe(a.punctuality_minutes)+" mnt" : "-",
+      safe(a.check_in),
+      safe(a.check_out),
+      safe(a.checkout_label),
+      safe(a.break_out),
+      safe(a.break_in),
+      a.break_late_minutes ? safe(a.break_late_minutes)+" mnt" : "-",
+      a.break_fine ? formatRupiah(a.break_fine).replace("Rp ","") : "-",
+      safe(a.absent_note),
+      a.overtime_start&&a.overtime_end ? `${a.overtime_start} - ${a.overtime_end}` : "-",
+      a.latitude&&a.longitude ? "Ada" : "-"
+    ]);
   });
 
-  const penaltyRowsForPdf = getPenaltyReport();
+  doc.autoTable({
+    startY:62,
+    head:[["Nama","Cabang","Tanggal","Status","Status Waktu","Selisih","Masuk","Pulang","Status Pulang","Izin Keluar","Masuk Lagi","Lambat Izin","Potongan","Alasan","Lembur","Lokasi"]],
+    body:rows,
+    theme:"grid",
+    styles:{
+      fontSize:5.7,
+      cellPadding:1.2,
+      overflow:"linebreak",
+      valign:"middle",
+      minCellHeight:5
+    },
+    headStyles:{
+      fillColor:[15,23,42],
+      textColor:255,
+      fontSize:5.5,
+      halign:"center",
+      valign:"middle"
+    },
+    alternateRowStyles:{fillColor:[248,250,252]},
+    margin:{left:5,right:5},
+    tableWidth:"auto",
+    columnStyles:{
+      0:{cellWidth:22},
+      1:{cellWidth:25},
+      2:{cellWidth:16},
+      3:{cellWidth:14},
+      4:{cellWidth:25},
+      5:{cellWidth:12},
+      6:{cellWidth:15},
+      7:{cellWidth:15},
+      8:{cellWidth:21},
+      9:{cellWidth:15},
+      10:{cellWidth:15},
+      11:{cellWidth:16},
+      12:{cellWidth:16},
+      13:{cellWidth:30},
+      14:{cellWidth:18},
+      15:{cellWidth:12}
+    },
+    didParseCell:function(data){
+      if(data.section === "body" && typeof data.row.raw?.[0] === "string" && data.row.raw[0].startsWith("CABANG / GUDANG:")){
+        data.cell.styles.fillColor = [226,232,240];
+        data.cell.styles.textColor = [15,23,42];
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.fontSize = 6.5;
+        if(data.column.index > 0){
+          data.cell.text = [""];
+        }
+      }
+    },
+    didDrawPage:function(){
+      const pageW=doc.internal.pageSize.getWidth();
+      const pageH=doc.internal.pageSize.getHeight();
+      doc.setFontSize(7);
+      doc.setTextColor(100);
+      doc.text("Halaman " + doc.internal.getNumberOfPages(), pageW-25, pageH-6);
+      doc.setTextColor(0);
+    }
+  });
+
+  const penaltyRowsForPdf = getPenaltyReport().sort((a,b)=>{
+    const ba=(a.branch||"").trim().toUpperCase();
+    const bb=(b.branch||"").trim().toUpperCase();
+    if(ba!==bb) return ba.localeCompare(bb);
+    return String(a.name||"").localeCompare(String(b.name||""));
+  });
   if(penaltyRowsForPdf.length){
     doc.addPage("landscape");
-    doc.setFontSize(16);
-    doc.text("Rekap Denda Telat Bulanan",14,15);
-    doc.setFontSize(10);
-    doc.text("Denda per menit: "+formatRupiah(getFinePerMinute()),14,23);
+    doc.setFontSize(15);
+    doc.setFont(undefined,"bold");
+    doc.text("Rekap Denda Telat Bulanan",14,14);
+    doc.setFont(undefined,"normal");
+    doc.setFontSize(9);
+    doc.text("Denda per menit: "+formatRupiah(getFinePerMinute()),14,21);
     doc.autoTable({
-      startY:30,
-      head:[["Nama","Cabang/Gudang","Bulan","Hari Telat","Telat Masuk","Lambat Izin","Denda/Menit","Total Potongan","Riwayat Potongan"]],
+      startY:28,
+      head:[["Nama","Cabang","Bulan","Hari Telat","Telat Masuk","Lambat Izin","Denda/Menit","Total Potongan","Riwayat Potongan"]],
       body:penaltyRowsForPdf.map(r=>[
         safe(r.name),safe(r.branch),safe(r.month),r.late_days+" hari",r.total_minutes+" menit",(r.break_minutes||0)+" menit",formatRupiah(r.fine_per_minute),formatRupiah(r.total_fine),
-        [...r.details.map(d=>`${d.date} masuk ${d.check_in} = ${d.minutes} menit`), ...(r.break_details||[]).map(d=>`${d.date} izin ${d.out}-${d.back} = ${d.minutes} menit`)].join("\\n")
+        [...r.details.map(d=>`${d.date} masuk ${d.check_in} = ${d.minutes} menit`), ...(r.break_details||[]).map(d=>`${d.date} izin ${d.out}-${d.back} = ${d.minutes} menit`)].join("\n")
       ]),
-      styles:{fontSize:8,cellPadding:2,overflow:"linebreak"},
-      headStyles:{fillColor:[15,23,42]},
+      theme:"grid",
+      styles:{fontSize:7,cellPadding:1.6,overflow:"linebreak",valign:"middle"},
+      headStyles:{fillColor:[15,23,42],textColor:255,fontSize:7},
       alternateRowStyles:{fillColor:[248,250,252]},
-      columnStyles:{7:{cellWidth:70}}
+      margin:{left:8,right:8},
+      columnStyles:{8:{cellWidth:80}}
     });
   }
   return doc;
