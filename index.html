@@ -1,1632 +1,446 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Fortuna Absen - FINAL</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fortuna Absen - Jam Kerja Cabang</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,Arial,sans-serif;background:#f4f7fb;color:#0f172a}
-.hidden{display:none!important}
-button{border:0;border-radius:12px;padding:11px 15px;font-weight:800;cursor:pointer;margin:4px}
-input,select{border:1px solid #dbe3ef;border-radius:12px;padding:12px;background:#fff;color:#0f172a;margin:5px;min-height:44px}
-a{color:#2563eb;text-decoration:none;font-weight:700}
-.login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#eef4ff,#ffffff)}
-.login-card{width:380px;background:#fff;padding:32px;border-radius:28px;box-shadow:0 25px 70px #1e293b25;border:1px solid #e5eaf3}
-.logo{font-size:28px;font-weight:900;color:#0f172a}
-.gold{color:#c89b2c}
-.primary{background:#0f172a;color:white}
-.goldbtn{background:#c89b2c;color:white}
-.danger{background:#fee2e2;color:#991b1b}
-.soft{background:#eef2ff;color:#1e3a8a}
-.green{background:#dcfce7;color:#166534}
-.orange{background:#ffedd5;color:#9a3412}
-.app{display:flex;min-height:100vh}
-.sidebar{width:270px;background:#fff;border-right:1px solid #e5eaf3;padding:22px;position:fixed;height:100vh;overflow:auto}
-.side-title{font-size:22px;font-weight:900;margin-bottom:4px}
-.side-sub{font-size:12px;color:#64748b;margin-bottom:12px}
-.version{font-size:11px;background:#0f172a;color:white;padding:7px 9px;border-radius:999px;display:inline-block;margin-bottom:18px;font-weight:800}
-.nav button{width:100%;text-align:left;margin-bottom:8px;background:transparent;color:#334155}
-.nav button.active,.nav button:hover{background:#eef4ff;color:#1d4ed8}
-.main{margin-left:270px;width:calc(100% - 270px);padding:26px}
-.topbar{background:#fff;border:1px solid #e5eaf3;border-radius:24px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 10px 30px #1e293b0d}
-.card{background:#fff;border:1px solid #e5eaf3;border-radius:24px;padding:20px;margin-bottom:18px;box-shadow:0 10px 30px #1e293b0d}
-.card-dark{background:linear-gradient(135deg,#0f172a,#1e293b);color:white;border:0}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.stat h1{margin:8px 0;font-size:34px}
-.stat p{color:#64748b;margin:0}
-.card-dark p{color:#cbd5e1}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:12px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:top}
-th{background:#f8fafc;color:#475569}
-video{max-width:100%;border-radius:18px;background:#0f172a;object-fit:cover;border:3px solid #e5eaf3}
-.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:center}
-.badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800;display:inline-block}
-.ok{background:#dcfce7;color:#166534}
-.no{background:#fee2e2;color:#991b1b}
-.warn{background:#ffedd5;color:#9a3412}
-.info{background:#dbeafe;color:#1e40af}
-.muted{color:#64748b;font-size:13px}
-.scroll{overflow:auto}
-.today-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:12px}
-.today-item{background:#f8fafc;border:1px solid #e5eaf3;border-radius:16px;padding:14px}
-.today-item b{display:block;font-size:12px;color:#64748b;margin-bottom:5px}
-.notice{padding:12px 14px;border-radius:16px;background:#fff7ed;color:#9a3412;font-weight:700;margin:10px 0}
-.scan-status{margin:10px 0;padding:10px 12px;border-radius:14px;background:#f8fafc;border:1px solid #e5eaf3;color:#334155;font-size:13px;font-weight:800}
-.scan-status.ready{background:#dcfce7;color:#166534}
-.scan-status.busy{background:#dbeafe;color:#1e40af}
-.scan-status.error{background:#fee2e2;color:#991b1b}
-.btn-disabled{opacity:.55;cursor:not-allowed}
-.preview-wrap{position:fixed;inset:0;background:#0f172acc;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
-.preview-box{width:min(1100px,96vw);height:min(760px,92vh);background:#fff;border-radius:22px;box-shadow:0 30px 90px #0005;display:flex;flex-direction:column;overflow:hidden}
-.preview-head{padding:14px 18px;border-bottom:1px solid #e5eaf3;display:flex;justify-content:space-between;align-items:center}
-.preview-head h3{margin:0}
-#pdfPreviewFrame{width:100%;height:100%;border:0;background:#f8fafc}
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
 
-/* MODAL EDIT ABSEN ADMIN */
-.modal-wrap{position:fixed;inset:0;background:#0f172acc;z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px}
-.modal-box{width:min(620px,96vw);background:#fff;color:#0f172a;border-radius:24px;box-shadow:0 30px 90px #0006;overflow:hidden}
-.modal-head{padding:18px 22px;border-bottom:1px solid #e5eaf3;display:flex;align-items:center;justify-content:space-between}
-.modal-head h3{margin:0;font-size:20px}
-.modal-body{padding:20px 22px}
-.modal-note{background:#fff7ed;color:#9a3412;border-radius:14px;padding:10px 12px;font-size:12px;font-weight:700;margin:10px 0}
-.modal-actions{padding:16px 22px;border-top:1px solid #e5eaf3;display:flex;gap:10px;justify-content:flex-end}
-.edit-badge{display:block;margin-top:6px;font-size:11px;color:#7c2d12;background:#ffedd5;border-radius:10px;padding:5px 8px;font-weight:800}
+    body {
+      margin: 0;
+      background: #f4f7fb;
+      color: #071331;
+    }
 
-@media(max-width:800px){
-.sidebar{position:relative;width:100%;height:auto}
-.app{display:block}
-.main{margin-left:0;width:100%;padding:14px}
-.topbar{display:block}
-button{width:100%;margin:5px 0}
-input,select{width:100%}
-}
-</style>
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 230px;
+      background: #ffffff;
+      border-right: 1px solid #dbe3ef;
+      padding: 22px 16px;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .logo span {
+      color: #f6b21a;
+    }
+
+    .sub {
+      font-size: 11px;
+      color: #667085;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      background: #071331;
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 20px;
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .menu a {
+      display: block;
+      text-decoration: none;
+      color: #0a1533;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 7px;
+    }
+
+    .menu a.active {
+      background: #e9f1ff;
+      color: #0047d9;
+    }
+
+    .content {
+      flex: 1;
+      padding: 24px;
+      overflow-x: auto;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 22px;
+      border: 1px solid #dbe3ef;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 22px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr 1.2fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #344054;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      height: 42px;
+      border: 1px solid #cfd8e6;
+      border-radius: 10px;
+      padding: 0 12px;
+      background: #fff;
+      outline: none;
+    }
+
+    button {
+      height: 42px;
+      border: none;
+      border-radius: 10px;
+      background: #071331;
+      color: white;
+      font-weight: 800;
+      padding: 0 18px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #101f46;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1000px;
+    }
+
+    th {
+      background: #f7f9fc;
+      text-align: left;
+      font-size: 13px;
+      padding: 13px;
+      border-bottom: 1px solid #e4eaf2;
+    }
+
+    td {
+      font-size: 13px;
+      padding: 16px 13px;
+      border-bottom: 1px solid #e4eaf2;
+    }
+
+    .zone {
+      font-weight: bold;
+      padding: 6px 10px;
+      border-radius: 20px;
+      background: #eef4ff;
+      color: #0047d9;
+      display: inline-block;
+    }
+
+    .danger {
+      background: #ffecec;
+      color: #b42318;
+      padding: 6px 10px;
+      border-radius: 20px;
+      font-weight: bold;
+      display: inline-block;
+    }
+
+    .success {
+      background: #e9f9ef;
+      color: #067647;
+      padding: 6px 10px;
+      border-radius: 20px;
+      font-weight: bold;
+      display: inline-block;
+    }
+
+    .note {
+      font-size: 13px;
+      background: #fff8e1;
+      border: 1px solid #ffe08a;
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      color: #533f04;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 
 <body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">Fortuna <span>Absen</span></div>
+      <div class="sub">Corporate Attendance System</div>
+      <div class="badge">VERSI FINAL + DENDA TELAT BULANAN</div>
 
-<div id="loginBox" class="login">
-  <div class="login-card">
-    <div class="logo">Fortuna <span class="gold">Absen</span></div>
-    <p style="color:#64748b">Smart attendance system with face verification</p>
-    <input id="pin" style="width:100%" placeholder="Masukkan PIN">
-    <button class="primary" style="width:100%;margin-top:10px" onclick="login()">Login</button>
-  </div>
-</div>
-
-<div id="pdfPreviewModal" class="preview-wrap hidden">
-  <div class="preview-box">
-    <div class="preview-head">
-      <h3>Preview Laporan PDF</h3>
-      <div>
-        <button class="goldbtn" onclick="exportPDF('download')">Download PDF</button>
-        <button class="danger" onclick="closePDFPreview()">Tutup</button>
+      <div class="menu">
+        <a href="#">Dashboard</a>
+        <a href="#">Data Karyawan</a>
+        <a href="#">Data Absen & Export</a>
+        <a href="#">Rekap Denda Telat</a>
+        <a class="active" href="#">Jam Kerja Cabang</a>
+        <a href="#">Download PDF</a>
+        <a href="#">Logout</a>
       </div>
-    </div>
-    <iframe id="pdfPreviewFrame"></iframe>
-  </div>
-</div>
+    </aside>
 
-<div id="editAttendanceModal" class="modal-wrap hidden">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3>Edit Jam Absen</h3>
-      <button class="danger" onclick="closeEditAttendanceModal()">Tutup</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="editAttendanceId">
-      <div class="form-grid">
-        <input id="editAttendanceName" readonly placeholder="Nama karyawan">
-        <input id="editAttendanceDate" readonly placeholder="Tanggal">
-        <input id="editCheckIn" type="time" step="1" placeholder="Jam masuk">
-        <input id="editCheckOut" type="time" step="1" placeholder="Jam pulang">
-      </div>
-      <div class="modal-note">Admin bisa mengisi alasan koreksi jika diperlukan. Contoh: sinyal hilang, HP error, atau gangguan jaringan. Sistem akan hitung ulang status telat/pulang otomatis.</div>
-      <textarea id="editAttendanceNote" style="width:100%;min-height:90px" placeholder="Keterangan koreksi admin (opsional)"></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="soft" onclick="closeEditAttendanceModal()">Batal</button>
-      <button class="goldbtn" onclick="saveAttendanceCorrection()">Simpan Koreksi</button>
-    </div>
-  </div>
-</div>
-
-<div id="app" class="app hidden">
-
-  <aside class="sidebar">
-    <div class="side-title">Fortuna <span class="gold">Absen</span></div>
-    <div class="side-sub">Corporate Attendance System</div>
-    <div class="version">VERSI FINAL + DENDA TELAT BULANAN</div>
-
-    <div id="adminNav" class="nav hidden">
-      <button class="active" onclick="showPage('dashboardPage',this)">Dashboard</button>
-      <button onclick="showPage('employeePage',this)">Data Karyawan</button>
-      <button onclick="showPage('attendancePage',this)">Data Absen & Export</button>
-      <button onclick="showPage('penaltyPage',this); renderPenaltyReport()">Rekap Denda Telat</button>
-      <button onclick="showPage('workSettingPage',this)">Jam Kerja Cabang</button>
-      <button onclick="exportPDF('download')">Download PDF</button>
-      <button onclick="logout()">Logout</button>
-    </div>
-
-    <div id="employeeNav" class="nav hidden">
-      <button class="active" onclick="showPage('employeeHomePage',this)">Absen Saya</button>
-      <button onclick="logout()">Logout</button>
-    </div>
-  </aside>
-
-  <main class="main">
-    <div class="topbar">
-      <div>
-        <h2 id="welcome" style="margin:0"></h2>
-        <div style="color:#64748b;font-size:13px">Pantau absensi, wajah, lokasi, tidak hadir, dan lembur secara online.</div>
-      </div>
-      <button class="danger" onclick="logout()">Logout</button>
-    </div>
-
-    <section id="dashboardPage">
-      <div class="grid">
-        <div class="card stat"><p>Total Karyawan Aktif</p><h1 id="totalEmp">0</h1></div>
-        <div class="card stat"><p>Hadir Hari Ini</p><h1 id="totalToday">0</h1></div>
-        <div class="card stat"><p>Tidak Hadir Hari Ini</p><h1 id="totalAbsentToday">0</h1></div>
-        <div class="card stat"><p>Terlambat Hari Ini</p><h1 id="totalLateToday">0</h1></div>
-        <div class="card stat"><p>Lebih Awal Hari Ini</p><h1 id="totalEarlyToday">0</h1></div>
-        <div class="card stat"><p>Pulang Lebih Awal Hari Ini</p><h1 id="totalEarlyLeaveToday">0</h1></div>
-        <div class="card stat"><p>Total Data Absen</p><h1 id="totalAbs">0</h1></div>
-      </div>
-      <div class="card scroll">
-        <h2>Daftar Terlambat Hari Ini</h2>
-        <p class="muted">Kalau ada karyawan absen lewat batas jam cabang, namanya langsung muncul di sini.</p>
-        <table>
-          <thead><tr><th>Nama</th><th>Cabang/Gudang</th><th>Jam Masuk</th><th>Keterlambatan</th></tr></thead>
-          <tbody id="lateTodayTable"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="workSettingPage" class="hidden">
+    <main class="content">
       <div class="card">
-        <h2>Pengaturan Jam Kerja per Cabang/Gudang</h2>
-        <p class="muted">Contoh: jam masuk 07:45, batas telat 08:00, jam pulang 17:00. Kalau checkout sebelum 17:00 = Pulang Lebih Awal, kalau lewat/sesuai 17:00 tidak diberi keterangan.</p>
+        <h2>Setting Jam Kerja Cabang</h2>
+
+        <div class="note">
+          Kalteng gunakan <b>WIB / Asia/Jakarta</b>.  
+          Kalsel gunakan <b>WITA / Asia/Makassar</b>.  
+          Jam kerja tetap ditulis sama: <b>07:45 - 08:00 - 17:00</b>.
+        </div>
+
         <div class="form-grid">
-          <select id="workBranchSelect"></select>
-          <input id="workStartTime" type="time" value="07:45">
-          <input id="workLateTime" type="time" value="08:00">
-          <input id="workEndTime" type="time" value="17:00">
-          <input id="workBreakLimit" type="number" min="1" value="60" placeholder="Batas izin keluar (menit)">
-          <input id="workBreakFine" type="number" min="0" step="500" value="1000" placeholder="Denda izin / menit">
-          <button class="goldbtn" onclick="saveWorkSetting()">Simpan Jam Cabang</button>
+          <div>
+            <label>Cabang/Gudang</label>
+            <select id="branchName">
+              <option>ASIH HELM</option>
+              <option>CAHAYA HELM</option>
+              <option>GUDANG ASIH JAYA</option>
+              <option>NEW MEDAN HELM 1</option>
+              <option>NEW MEDAN HELM 2</option>
+              <option>NEW NHK HELM</option>
+              <option>NUSANTARA HELM</option>
+              <option>PT. IFMP KALSEL</option>
+              <option>Pusat</option>
+              <option>TOBA HELM</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Jam Masuk</label>
+            <input type="time" id="jamMasuk" value="07:45">
+          </div>
+
+          <div>
+            <label>Batas Telat</label>
+            <input type="time" id="batasTelat" value="08:00">
+          </div>
+
+          <div>
+            <label>Jam Pulang</label>
+            <input type="time" id="jamPulang" value="17:00">
+          </div>
+
+          <div>
+            <label>Batas Izin/Menit</label>
+            <input type="number" id="batasIzin" value="60">
+          </div>
+
+          <div>
+            <label>Denda Izin/Menit</label>
+            <input type="number" id="dendaIzin" value="1000">
+          </div>
+
+          <div>
+            <label>Zona Waktu</label>
+            <select id="timezone">
+              <option value="Asia/Jakarta">WIB - Asia/Jakarta</option>
+              <option value="Asia/Makassar">WITA - Asia/Makassar</option>
+            </select>
+          </div>
+
+          <button onclick="saveSetting()">Simpan</button>
         </div>
       </div>
-      <div class="card scroll">
+
+      <div class="card">
         <h2>Daftar Setting Jam Cabang</h2>
-        <table>
-          <thead><tr><th>Cabang/Gudang</th><th>Jam Masuk Standar</th><th>Batas Telat</th><th>Jam Pulang</th><th>Batas Izin Keluar</th><th>Denda Izin/Menit</th><th>Status</th><th>Aksi</th></tr></thead>
-          <tbody id="workSettingsTable"></tbody>
-        </table>
-      </div>
-    </section>
 
-    <section id="employeePage" class="hidden">
-      <div class="card">
-        <h2>Tambah / Edit Karyawan</h2>
-        <input type="hidden" id="editId">
-        <div class="form-grid">
-          <input id="empName" placeholder="Nama">
-          <input id="empPhone" placeholder="No HP">
-          <input id="empBranch" placeholder="Cabang">
-          <input id="empPosition" placeholder="Jabatan">
-          <input id="empPin" placeholder="PIN">
-          <select id="empRole">
-            <option value="employee">Employee</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <button class="goldbtn" onclick="saveEmployee()">Simpan</button>
-        <button class="soft" onclick="resetEmployeeForm()">Reset</button>
-      </div>
-
-      <div class="card scroll">
-        <h2>Data Karyawan</h2>
         <table>
           <thead>
             <tr>
-              <th>Nama</th><th>HP</th><th>Cabang</th><th>Jabatan</th><th>PIN</th><th>Role</th><th>Status</th><th>Aksi</th>
+              <th>Cabang/Gudang</th>
+              <th>Jam Masuk Standar</th>
+              <th>Batas Telat</th>
+              <th>Jam Pulang</th>
+              <th>Batas Izin Keluar</th>
+              <th>Denda Izin/Menit</th>
+              <th>Zona Waktu</th>
+              <th>Jam Sekarang Cabang</th>
+              <th>Status Telat Saat Ini</th>
             </tr>
           </thead>
-          <tbody id="employeeTable"></tbody>
+          <tbody id="settingTable"></tbody>
         </table>
       </div>
-    </section>
-
-    <section id="attendancePage" class="hidden">
-      <div class="card">
-        <h2>Filter Data Absen</h2>
-        <div class="form-grid">
-          <input id="filterStart" type="date" onchange="renderAttendance()">
-          <input id="filterEnd" type="date" onchange="renderAttendance()">
-          <select id="filterStatus" onchange="renderAttendance()">
-            <option value="all">Semua Status</option>
-            <option value="hadir">Hadir</option>
-            <option value="tidak_hadir">Tidak Hadir</option>
-          </select>
-          <select id="filterPunctuality" onchange="renderAttendance()">
-            <option value="all">Semua Waktu</option>
-            <option value="early">Lebih Awal</option>
-            <option value="ontime">Tepat Waktu</option>
-            <option value="late">Terlambat</option>
-          </select>
-          <select id="filterCheckout" onchange="renderAttendance()">
-            <option value="all">Semua Pulang</option>
-            <option value="early_leave">Pulang Lebih Awal</option>
-          </select>
-          <select id="filterBranch" onchange="renderAttendance()">
-            <option value="all">Semua Cabang / Gudang</option>
-          </select>
-          <select id="filterEmployee" onchange="renderAttendance()">
-            <option value="all">Semua Karyawan</option>
-          </select>
-          <button class="soft" onclick="resetFilters()">Reset Filter</button>
-          <button class="primary" onclick="previewPDF()">Preview PDF</button>
-          <button class="goldbtn" onclick="exportPDF('download')">Export PDF Sesuai Filter</button>
-        </div>
-      </div>
-
-      <div class="grid">
-        <div class="card stat"><p>Total Hadir Filter</p><h1 id="sumPresent">0</h1></div>
-        <div class="card stat"><p>Total Tidak Hadir Filter</p><h1 id="sumAbsent">0</h1></div>
-        <div class="card stat"><p>Total Lembur Filter</p><h1 id="sumOvertime">0</h1></div>
-        <div class="card stat"><p>Total Terlambat Filter</p><h1 id="sumLate">0</h1></div>
-        <div class="card stat"><p>Total Lebih Awal Filter</p><h1 id="sumEarly">0</h1></div>
-        <div class="card stat"><p>Total Pulang Lebih Awal Filter</p><h1 id="sumEarlyLeave">0</h1></div>
-      </div>
-
-      <div class="card scroll">
-        <h2>Data Absen</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Nama</th><th>Cabang</th><th>Tanggal</th><th>Status</th><th>Status Waktu</th><th>Selisih</th><th>Masuk</th><th>Pulang</th><th>Status Pulang</th><th>Izin Keluar</th><th>Masuk Kembali</th><th>Lambat Izin</th><th>Potongan Izin</th><th>Tidak Hadir</th><th>Alasan</th><th>Koreksi Admin</th><th>Foto</th><th>Lokasi</th><th>Lembur</th><th>Face</th><th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="attendanceTable"></tbody>
-        </table>
-      </div>
-    </section>
-
-
-
-    <section id="penaltyPage" class="hidden">
-      <div class="card">
-        <h2>Rekap Telat & Denda Bulanan</h2>
-        <p class="muted">Fitur ini menghitung total menit terlambat per karyawan dalam 1 bulan, lalu otomatis mengalikan dengan nominal denda per menit yang diatur admin.</p>
-        <div class="form-grid">
-          <input id="penaltyMonth" type="month" onchange="renderPenaltyReport()">
-          <input id="finePerMinute" type="number" min="0" step="500" placeholder="Denda per menit, contoh 1000">
-          <select id="penaltyBranch" onchange="renderPenaltyEmployees(); renderPenaltyReport()">
-            <option value="all">Semua Cabang / Gudang</option>
-          </select>
-          <select id="penaltyEmployee" onchange="renderPenaltyReport()">
-            <option value="all">Semua Karyawan</option>
-          </select>
-          <button class="goldbtn" onclick="saveFineSetting()">Simpan Setting Denda</button>
-          <button class="primary" onclick="renderPenaltyReport()">Hitung Rekap</button>
-          <button class="soft" onclick="previewPenaltyPDF()">Preview PDF Denda</button>
-          <button class="soft" onclick="exportPenaltyPDF()">Export PDF Denda</button>
-          <button class="danger" onclick="deleteVisiblePenaltyHistory()">Hapus Riwayat Filter Ini</button>
-        </div>
-        <div class="notice">Contoh: denda Rp 1.000/menit. Kalau total telat 30 menit dalam 1 bulan, potongan otomatis Rp 30.000.</div>
-      </div>
-
-      <div class="grid">
-        <div class="card stat"><p>Total Karyawan Telat</p><h1 id="penaltyEmpCount">0</h1></div>
-        <div class="card stat"><p>Total Menit Telat</p><h1 id="penaltyTotalMinutes">0</h1></div>
-        <div class="card stat"><p>Total Potongan</p><h1 id="penaltyTotalMoney">Rp 0</h1></div>
-      </div>
-
-      <div class="card scroll">
-        <h2>Ringkasan Potongan per Karyawan</h2>
-        <table>
-          <thead>
-            <tr><th>Nama</th><th>Cabang</th><th>Bulan</th><th>Hari Telat Masuk</th><th>Menit Telat Masuk</th><th>Menit Lambat Izin</th><th>Denda/Menit</th><th>Total Potongan</th><th>Riwayat Potongan</th><th>Aksi</th></tr>
-          </thead>
-          <tbody id="penaltyTable"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="employeeHomePage" class="hidden">
-      <div class="card card-dark">
-        <h2 style="margin-top:0">Absen Saya</h2>
-        <p>Setelah absen berhasil, hasil hari ini dan riwayat absen kamu akan muncul di bawah.</p>
-        <div class="notice">GPS/lokasi wajib diizinkan. Kalau lokasi mati atau ditolak, absen tidak bisa dilakukan.</div>
-      </div>
-
-      <div class="card">
-        <h2>Verifikasi Wajah & Absen</h2>
-        <div id="scanStatus" class="scan-status busy">Model wajah sedang loading... tunggu sampai siap.</div>
-        <video id="video" width="240" height="180" autoplay muted playsinline></video><br>
-        <button id="btnCamera" class="soft" onclick="startCamera()">Buka Kamera</button>
-        <button id="btnRegisterFace" class="goldbtn" onclick="registerFace()" disabled>Daftarkan Wajah</button>
-        <button id="btnCheckIn" class="primary" onclick="checkIn()" disabled>Absen Masuk</button>
-        <button id="btnCheckOut" class="primary" onclick="checkOut()" disabled>Absen Pulang</button>
-        <button id="btnBreakOut" class="orange" onclick="breakOut()" disabled>Izin Keluar</button>
-        <button id="btnBreakIn" class="green" onclick="breakIn()" disabled>Masuk Kembali</button>
-      </div>
-
-      <div class="card">
-        <h2>Absen Tidak Hadir</h2>
-        <div class="form-grid">
-          <select id="absentReason">
-            <option value="">Pilih alasan</option>
-            <option value="Sakit">Sakit</option>
-            <option value="Izin keluarga">Izin keluarga</option>
-            <option value="Keperluan mendadak">Keperluan mendadak</option>
-            <option value="Lainnya">Lainnya</option>
-          </select>
-          <input id="absentNote" placeholder="Keterangan tambahan wajib diisi">
-        </div>
-        <button class="danger" onclick="markAbsent()">Absen Tidak Hadir</button>
-      </div>
-
-      <div class="card">
-        <h2>Hasil Absen Hari Ini</h2>
-        <div id="todayAttendanceBox" class="today-box"></div>
-      </div>
-
-      <div class="card">
-        <h2>Lembur</h2>
-        <input id="otStart" type="time">
-        <input id="otEnd" type="time">
-        <input id="otNote" placeholder="Keterangan lembur">
-        <button class="goldbtn" onclick="saveOvertime()">Simpan Lembur</button>
-      </div>
-
-      <div class="card scroll">
-        <h2>Riwayat Absen Saya</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Tanggal</th><th>Status</th><th>Status Waktu</th><th>Selisih</th><th>Masuk</th><th>Pulang</th><th>Status Pulang</th><th>Izin Keluar</th><th>Masuk Kembali</th><th>Lambat Izin</th><th>Potongan Izin</th><th>Tidak Hadir</th><th>Alasan</th><th>Lembur</th><th>Lokasi</th>
-            </tr>
-          </thead>
-          <tbody id="myAttendanceTable"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
-</div>
-
-<script>
-const SUPABASE_URL = "https://dosqwftlncbonasncdlw.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvc3F3ZnRsbmNib25hc25jZGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg1MTYsImV4cCI6MjA5MjgyNDUxNn0.IMuneBETnikJTWlknb8_g6Ah4kZVk0blqrbXEXs9gMw";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let currentUser=null, stream=null, allAttendance=[], allEmployees=[], myAttendance=[], workSettings=[], modelsReady=false, cameraReady=false, isProcessing=false;
-
-async function loadModels(){
-  try{
-    setScanStatus("Model wajah sedang loading... jangan klik absen dulu.","busy");
-    const MODEL_URL="https://justadudewhohacks.github.io/face-api.js/models";
-    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-    modelsReady=true;
-    console.log("Model wajah berhasil load");
-    if(cameraReady) setScanStatus("Siap digunakan. Kamera dan model wajah sudah aktif.","ready");
-    else setScanStatus("Model wajah siap. Buka kamera dulu sebelum absen.","ready");
-    setScanButtons();
-  }catch(e){
-    console.error(e);
-    setScanStatus("Model wajah gagal loading. Refresh halaman lalu coba lagi.","error");
-    alert("Model wajah gagal load");
-  }
-}
-loadModels();
-
-function setScanStatus(text,type="busy"){
-  const el=document.getElementById("scanStatus");
-  if(!el)return;
-  el.className="scan-status "+type;
-  el.innerText=text;
-}
-
-function setScanButtons(){
-  const ready=modelsReady && cameraReady && !isProcessing;
-  ["btnRegisterFace","btnCheckIn","btnCheckOut","btnBreakOut","btnBreakIn"].forEach(id=>{
-    const b=document.getElementById(id);
-    if(b){b.disabled=!ready; b.classList.toggle("btn-disabled",!ready);}
-  });
-  const cam=document.getElementById("btnCamera");
-  if(cam){cam.disabled=isProcessing; cam.classList.toggle("btn-disabled",isProcessing);}
-}
-
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-
-async function waitVideoReady(){
-  const v=document.getElementById("video");
-  if(!v || !v.srcObject)return false;
-  for(let i=0;i<20;i++){
-    if(v.readyState>=2 && v.videoWidth>0)return true;
-    await sleep(150);
-  }
-  return false;
-}
-
-async function runLocked(message,fn){
-  if(isProcessing){alert("Masih proses, tunggu sebentar");return;}
-  isProcessing=true;
-  setScanButtons();
-  setScanStatus(message,"busy");
-  try{ await fn(); }
-  finally{
-    isProcessing=false;
-    setScanButtons();
-    if(modelsReady && cameraReady) setScanStatus("Siap digunakan. Kamera dan model wajah sudah aktif.","ready");
-  }
-}
-
-function today(){return new Date().toISOString().slice(0,10)}
-function nowTime(){
-  const d = new Date();
-  const h = String(d.getHours()).padStart(2,"0");
-  const m = String(d.getMinutes()).padStart(2,"0");
-  const sec = String(d.getSeconds()).padStart(2,"0");
-  return `${h}:${m}:${sec}`;
-}
-function safe(v){return (v===null||v===undefined||v==="")?"-":v}
-function statusBadge(status){
-  if(status==="tidak_hadir") return `<span class="badge no">Tidak Hadir</span>`;
-  return `<span class="badge ok">Hadir</span>`;
-}
-function punctualityBadge(status,label){
-  if(status==="late") return `<span class="badge no">${label||"Terlambat"}</span>`;
-  if(status==="early") return `<span class="badge info">${label||"Lebih Awal"}</span>`;
-  if(status==="ontime") return `<span class="badge ok">${label||"Tepat Waktu"}</span>`;
-  return `<span class="badge warn">Belum Ada</span>`;
-}
-function timeToMinutes(t){
-  if(!t) return null;
-  const clean = String(t).trim().replaceAll(".",":");
-  if(!clean.includes(":")) return null;
-  const [h,m] = clean.slice(0,5).split(":").map(Number);
-  if(Number.isNaN(h) || Number.isNaN(m)) return null;
-  return (h * 60) + m;
-}
-function getWorkSetting(branch){
-  const b=(branch||"").trim();
-  return workSettings.find(x=>(x.branch||"").trim()===b) || {branch:b,start_time:"07:45",late_time:"08:00",end_time:"17:00"};
-}
-function calculatePunctuality(branch, timeText){
-  const setting = getWorkSetting(branch);
-  const masuk = timeToMinutes(timeText);
-  const start = timeToMinutes(setting.start_time || "07:45");
-  const late = timeToMinutes(setting.late_time || "08:00");
-
-  if(masuk === null || start === null || late === null){
-    return {status:"unknown",minutes:0,label:"Belum Ada"};
-  }
-
-  if(masuk < start){
-    const diff = start - masuk;
-    return {status:"early",minutes:diff,label:`Lebih Awal ${diff} menit`};
-  }
-
-  if(masuk > late){
-    const diff = masuk - late;
-    return {status:"late",minutes:diff,label:`Terlambat ${diff} menit`};
-  }
-
-  return {status:"ontime",minutes:0,label:"Tepat Waktu"};
-}
-function checkoutBadge(status,label){
-  if(status==="early_leave") return `<span class="badge no">${label||"Pulang Lebih Awal"}</span>`;
-  return `<span class="badge ok">-</span>`;
-}
-function calculateCheckout(branch, timeText){
-  const setting=getWorkSetting(branch);
-  const pulang=timeToMinutes(timeText);
-  const end=timeToMinutes(setting.end_time||"17:00");
-  if(pulang===null || end===null) return {status:"unknown",minutes:0,label:"-"};
-  if(pulang < end){const diff=end-pulang; return {status:"early_leave",minutes:diff,label:`Pulang Lebih Awal ${diff} menit`};}
-  return {status:"normal_checkout",minutes:0,label:""};
-}
-function getBreakSetting(branch){
-  const st=getWorkSetting(branch);
-  return {
-    limit:Number(st.break_limit_minutes || 60),
-    fine:Number(st.break_fine_per_minute || getFinePerMinute())
-  };
-}
-function calculateBreakReturn(branch, outTime, inTime){
-  const b=getBreakSetting(branch);
-  const out=timeToMinutes(outTime);
-  const back=timeToMinutes(inTime);
-  if(out===null || back===null) return {minutes:0,label:"-",fine:0,status:"unknown",limit:b.limit};
-  const deadline=out + b.limit;
-  const diff=back > deadline ? back - deadline : 0;
-  return {
-    minutes:diff,
-    label:diff>0 ? `Lambat karena izin keluar ${diff} menit` : "Tepat waktu kembali",
-    fine:diff * b.fine,
-    status:diff>0 ? "break_late" : "break_ontime",
-    limit:b.limit,
-    finePerMinute:b.fine
-  };
-}
-function logout(){location.reload()}
-
-function showPage(id,btn){
-  ["dashboardPage","employeePage","attendancePage","workSettingPage","penaltyPage","employeeHomePage"].forEach(x=>{
-    const el=document.getElementById(x); if(el) el.classList.add("hidden");
-  });
-  document.getElementById(id).classList.remove("hidden");
-  if(btn){
-    document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
-    btn.classList.add("active");
-  }
-}
-
-async function login(){
-  const pinInput = document.getElementById("pin").value.trim();
-  if(!pinInput){alert("PIN wajib diisi");return;}
-
-  const {data,error} = await db.from("employees").select("*").eq("pin", pinInput).maybeSingle();
-  if(error){console.error("LOGIN ERROR:", error);alert("Database error saat login");return;}
-  if(!data){alert("PIN tidak ditemukan");return;}
-  if(data.is_active === false){alert("Akun ini nonaktif");return;}
-
-  currentUser = data;
-  loginBox.classList.add("hidden");
-  app.classList.remove("hidden");
-  welcome.innerText = "Halo, " + data.name;
-
-  if(data.role === "admin"){
-    adminNav.classList.remove("hidden");
-    employeeNav.classList.add("hidden");
-    showPage("dashboardPage");
-    await loadAdmin();
-  }else{
-    employeeNav.classList.remove("hidden");
-    adminNav.classList.add("hidden");
-    showPage("employeeHomePage");
-    setScanButtons();
-    if(modelsReady) setScanStatus("Model wajah siap. Buka kamera dulu sebelum absen.","ready");
-    else setScanStatus("Model wajah sedang loading... tunggu sampai siap.","busy");
-    await loadMyAttendance();
-  }
-}
-
-async function loadAdmin(){
-  const {data:emp}=await db.from("employees").select("*").order("created_at",{ascending:false});
-  const {data:abs}=await db.from("attendances").select("*").order("date",{ascending:false}).order("created_at",{ascending:false});
-  const {data:ws,error:wsErr}=await db.from("branch_work_settings").select("*").order("branch",{ascending:true});
-  if(wsErr){console.warn("Work setting belum ada / SQL belum dijalankan",wsErr); workSettings=[];} else {workSettings=ws||[];}
-  allEmployees=emp||[];
-  allAttendance=abs||[];
-
-  totalEmp.innerText=allEmployees.filter(e=>e.is_active).length;
-  totalToday.innerText=allAttendance.filter(a=>a.date===today() && (a.status||"hadir")!=="tidak_hadir").length;
-  totalAbsentToday.innerText=allAttendance.filter(a=>a.date===today() && a.status==="tidak_hadir").length;
-  const lateToday=allAttendance.filter(a=>a.date===today() && a.punctuality_status==="late");
-  totalLateToday.innerText=lateToday.length;
-  totalEarlyToday.innerText=allAttendance.filter(a=>a.date===today() && a.punctuality_status==="early").length;
-  if(document.getElementById("totalEarlyLeaveToday")) totalEarlyLeaveToday.innerText=allAttendance.filter(a=>a.date===today() && a.checkout_status==="early_leave").length;
-  totalAbs.innerText=allAttendance.length;
-  lateTodayTable.innerHTML=lateToday.length?lateToday.map(a=>`<tr><td>${safe(a.employee_name)}</td><td>${safe(a.branch)}</td><td>${safe(a.check_in)}</td><td>${safe(a.punctuality_label || ("Terlambat "+(a.punctuality_minutes||0)+" menit"))}</td></tr>`).join(""):`<tr><td colspan="4" class="muted">Belum ada karyawan terlambat hari ini.</td></tr>`;
-
-  renderEmployees();
-  renderFilterBranches();
-  renderFilterEmployees();
-  renderPenaltyBranches();
-  renderPenaltyEmployees();
-  renderPenaltyDefaults();
-  renderWorkSettings();
-  renderAttendance();
-}
-
-async function loadMyAttendance(){
-  if(!currentUser) return;
-  const {data:ws}=await db.from("branch_work_settings").select("*");
-  workSettings=ws||[];
-  const {data,error}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).order("date",{ascending:false}).order("created_at",{ascending:false});
-  if(error){console.error(error);alert("Gagal mengambil riwayat absen");return;}
-  myAttendance=data||[];
-  renderTodayAttendance();
-  renderMyAttendance();
-}
-
-function renderEmployees(){
-  employeeTable.innerHTML=allEmployees.map(e=>`
-    <tr>
-      <td>${safe(e.name)}</td>
-      <td>${safe(e.phone)}</td>
-      <td>${safe(e.branch)}</td>
-      <td>${safe(e.position)}</td>
-      <td>${safe(e.pin)}</td>
-      <td>${safe(e.role||"employee")}</td>
-      <td><span class="badge ${e.is_active?'ok':'no'}">${e.is_active?'Aktif':'Nonaktif'}</span></td>
-      <td>
-        <button class="soft" onclick='editEmployee(${JSON.stringify(e)})'>Edit</button>
-        <button class="danger" onclick="toggleEmployee('${e.id}',${e.is_active})">${e.is_active?'Nonaktifkan':'Aktifkan'}</button>
-        <button class="danger" onclick="deleteEmployeeFull('${e.id}','${encodeURIComponent(e.name||'Karyawan')}')">Hapus</button>
-      </td>
-    </tr>
-  `).join("");
-}
-
-function renderFilterBranches(){
-  const branches=[...new Set(allEmployees.map(e=>(e.branch||"").trim()).filter(Boolean))].sort();
-  filterBranch.innerHTML = `<option value="all">Semua Cabang / Gudang</option>` + branches.map(b=>`<option value="${b}">${b}</option>`).join("");
-}
-
-function renderFilterEmployees(){
-  filterEmployee.innerHTML = `<option value="all">Semua Karyawan</option>` + allEmployees.map(e=>`<option value="${e.id}">${e.name||'-'} - ${e.branch||'-'}</option>`).join("");
-}
-
-function renderWorkSettings(){
-  const branches=[...new Set(allEmployees.map(e=>(e.branch||"").trim()).filter(Boolean))].sort();
-  if(document.getElementById("workBranchSelect")){
-    workBranchSelect.innerHTML = branches.map(b=>`<option value="${b}">${b}</option>`).join("") || `<option value="">Belum ada cabang</option>`;
-    const first=workBranchSelect.value;
-    const st=getWorkSetting(first);
-    workStartTime.value=st.start_time||"07:45";
-    workLateTime.value=st.late_time||"08:00";
-    if(document.getElementById("workEndTime")) workEndTime.value=st.end_time||"17:00";
-    if(document.getElementById("workBreakLimit")) workBreakLimit.value=st.break_limit_minutes||60;
-    if(document.getElementById("workBreakFine")) workBreakFine.value=st.break_fine_per_minute||getFinePerMinute();
-    workBranchSelect.onchange=()=>{
-      const s=getWorkSetting(workBranchSelect.value);
-      workStartTime.value=s.start_time||"07:45";
-      workLateTime.value=s.late_time||"08:00";
-      if(document.getElementById("workEndTime")) workEndTime.value=s.end_time||"17:00";
-      if(document.getElementById("workBreakLimit")) workBreakLimit.value=s.break_limit_minutes||60;
-      if(document.getElementById("workBreakFine")) workBreakFine.value=s.break_fine_per_minute||getFinePerMinute();
-    };
-  }
-  if(document.getElementById("workSettingsTable")){
-    workSettingsTable.innerHTML = branches.map(b=>{
-      const st=getWorkSetting(b);
-      const saved=workSettings.some(x=>(x.branch||"").trim()===b);
-      const encoded=encodeURIComponent(b);
-      return `<tr>
-        <td>${b}</td>
-        <td>${st.start_time||"07:45"}</td>
-        <td>${st.late_time||"08:00"}</td>
-        <td>${st.end_time||"17:00"}</td>
-        <td>${st.break_limit_minutes||60} menit</td>
-        <td>${formatRupiah(st.break_fine_per_minute||getFinePerMinute())}</td>
-        <td>${saved?"Tersimpan":"Default"}</td>
-        <td>
-          <button class="soft" onclick="editWorkSetting('${encoded}')">Edit</button>
-          <button class="danger" onclick="deleteWorkSetting('${encoded}',${saved})">Hapus</button>
-        </td>
-      </tr>`;
-    }).join("") || `<tr><td colspan="8" class="muted">Belum ada cabang/gudang.</td></tr>`;
-  }
-}
-
-function editWorkSetting(encodedBranch){
-  const branch=decodeURIComponent(encodedBranch||"");
-  if(!branch)return;
-  if(document.getElementById("workBranchSelect")){
-    workBranchSelect.value=branch;
-    const st=getWorkSetting(branch);
-    workStartTime.value=st.start_time||"07:45";
-    workLateTime.value=st.late_time||"08:00";
-    if(document.getElementById("workEndTime")) workEndTime.value=st.end_time||"17:00";
-    if(document.getElementById("workBreakLimit")) workBreakLimit.value=st.break_limit_minutes||60;
-    if(document.getElementById("workBreakFine")) workBreakFine.value=st.break_fine_per_minute||getFinePerMinute();
-  }
-  window.scrollTo({top:0,behavior:"smooth"});
-}
-
-async function deleteWorkSetting(encodedBranch,isSaved){
-  const branch=decodeURIComponent(encodedBranch||"");
-  if(!branch)return alert("Cabang tidak ditemukan");
-  if(!isSaved)return alert("Setting cabang ini masih Default, belum ada data tersimpan yang bisa dihapus.");
-  const ok=confirm(`Yakin hapus setting jam kerja cabang ${branch}?\n\nSetelah dihapus, cabang ini akan kembali memakai setting default: 07:45 / 08:00 / 17:00 / izin 60 menit.`);
-  if(!ok)return;
-  const {error}=await db.from("branch_work_settings").delete().eq("branch",branch);
-  if(error){console.error(error);return alert("Gagal hapus setting jam kerja. Cek RLS/policy Supabase.");}
-  alert("Setting jam kerja berhasil dihapus. Cabang kembali ke setting default.");
-  await loadAdmin();
-}
-
-async function saveWorkSetting(){
-  const branch=(workBranchSelect.value||"").trim();
-  if(!branch)return alert("Pilih cabang/gudang dulu");
-  if(!workStartTime.value || !workLateTime.value || !workEndTime.value)return alert("Jam masuk, batas telat, dan jam pulang wajib diisi");
-  if(document.getElementById("workBreakLimit") && Number(workBreakLimit.value||0)<=0)return alert("Batas izin keluar wajib lebih dari 0 menit");
-  if(timeToMinutes(workLateTime.value) < timeToMinutes(workStartTime.value))return alert("Batas telat tidak boleh lebih awal dari jam masuk standar");
-  const payload={branch,start_time:workStartTime.value,late_time:workLateTime.value,end_time:workEndTime.value,break_limit_minutes:Number(workBreakLimit?.value||60),break_fine_per_minute:Number(workBreakFine?.value||getFinePerMinute()),updated_at:new Date().toISOString()};
-  const {error}=await db.from("branch_work_settings").upsert(payload,{onConflict:"branch"});
-  if(error){console.error(error);return alert("Gagal simpan jam kerja. Pastikan SQL tabel branch_work_settings sudah dijalankan.")}
-  alert("Jam kerja cabang berhasil disimpan");
-  await loadAdmin();
-}
-
-function editEmployee(e){
-  showPage("employeePage");
-  editId.value=e.id;
-  empName.value=e.name||"";
-  empPhone.value=e.phone||"";
-  empBranch.value=e.branch||"";
-  empPosition.value=e.position||"";
-  empPin.value=e.pin||"";
-  empRole.value=e.role||"employee";
-  window.scrollTo(0,0);
-}
-
-function resetEmployeeForm(){
-  editId.value=""; empName.value=""; empPhone.value=""; empBranch.value=""; empPosition.value=""; empPin.value=""; empRole.value="employee";
-}
-
-async function saveEmployee(){
-  if(!empName.value||!empPin.value)return alert("Nama dan PIN wajib diisi");
-  const payload={name:empName.value,phone:empPhone.value,branch:empBranch.value,position:empPosition.value,pin:empPin.value,role:empRole.value,is_active:true};
-  let error;
-  if(editId.value){({error}=await db.from("employees").update(payload).eq("id",editId.value));}
-  else{({error}=await db.from("employees").insert(payload));}
-  if(error){console.error(error);return alert("Gagal simpan. PIN mungkin sudah dipakai.")}
-  alert("Data karyawan berhasil disimpan");
-  resetEmployeeForm();
-  loadAdmin();
-}
-
-async function toggleEmployee(id,status){
-  const {error}=await db.from("employees").update({is_active:!status}).eq("id",id);
-  if(error){console.error(error);return alert("Gagal ubah status")}
-  loadAdmin();
-}
-
-async function deleteEmployeeFull(id, encodedName){
-  const name = decodeURIComponent(encodedName || "Karyawan");
-  const yakin1 = confirm(`Yakin hapus ${name}?
-
-Ini akan menghapus DATA KARYAWAN + SEMUA RIWAYAT ABSEN miliknya.`);
-  if(!yakin1) return;
-
-  const yakin2 = confirm(`Konfirmasi terakhir.
-
-Data ${name} dan seluruh riwayat absennya akan hilang permanen. Lanjutkan?`);
-  if(!yakin2) return;
-
-  const {error:absErr}=await db.from("attendances").delete().eq("employee_id",id);
-  if(absErr){
-    console.error("DELETE ATTENDANCE ERROR:", absErr);
-    return alert("Gagal hapus riwayat absen karyawan");
-  }
-
-  const {error:empErr}=await db.from("employees").delete().eq("id",id);
-  if(empErr){
-    console.error("DELETE EMPLOYEE ERROR:", empErr);
-    return alert("Riwayat absen sudah terhapus, tapi data karyawan gagal dihapus. Cek RLS/policy Supabase.");
-  }
-
-  alert(`Data ${name} dan seluruh riwayat absennya berhasil dihapus`);
-  resetEmployeeForm();
-  await loadAdmin();
-}
-
-function getFilteredAttendance(){
-  const start=filterStart?.value || "";
-  const end=filterEnd?.value || "";
-  const stat=filterStatus?.value || "all";
-  const punctuality=filterPunctuality?.value || "all";
-  const checkout=filterCheckout?.value || "all";
-  const branch=filterBranch?.value || "all";
-  const emp=filterEmployee?.value || "all";
-  return allAttendance.filter(a=>{
-    const s=a.status||"hadir";
-    if(start && a.date < start) return false;
-    if(end && a.date > end) return false;
-    if(stat!=="all" && s!==stat) return false;
-    if(punctuality!=="all" && (a.punctuality_status||"")!==punctuality) return false;
-    if(checkout!=="all" && (a.checkout_status||"")!==checkout) return false;
-    if(branch!=="all" && (a.branch||"")!==branch) return false;
-    if(emp!=="all" && a.employee_id!==emp) return false;
-    return true;
-  });
-}
-
-function resetFilters(){
-  filterStart.value=""; filterEnd.value=""; filterStatus.value="all"; if(document.getElementById("filterPunctuality"))filterPunctuality.value="all"; if(document.getElementById("filterCheckout"))filterCheckout.value="all"; filterBranch.value="all"; filterEmployee.value="all";
-  renderAttendance();
-}
-
-function renderAttendance(){
-  const data=getFilteredAttendance();
-  const hadir=data.filter(a=>(a.status||"hadir")!=="tidak_hadir").length;
-  const tidak=data.filter(a=>a.status==="tidak_hadir").length;
-  const lembur=data.filter(a=>a.overtime_start && a.overtime_end).length;
-  const telat=data.filter(a=>a.punctuality_status==="late").length;
-  const awal=data.filter(a=>a.punctuality_status==="early").length;
-  const pulangAwal=data.filter(a=>a.checkout_status==="early_leave").length;
-  sumPresent.innerText=hadir;
-  sumAbsent.innerText=tidak;
-  sumOvertime.innerText=lembur;
-  if(document.getElementById("sumLate"))sumLate.innerText=telat;
-  if(document.getElementById("sumEarly"))sumEarly.innerText=awal;
-  if(document.getElementById("sumEarlyLeave"))sumEarlyLeave.innerText=pulangAwal;
-
-  attendanceTable.innerHTML=data.map(a=>`
-    <tr>
-      <td>${safe(a.employee_name)}</td>
-      <td>${safe(a.branch)}</td>
-      <td>${safe(a.date)}</td>
-      <td>${statusBadge(a.status||"hadir")}</td>
-      <td>${punctualityBadge(a.punctuality_status,a.punctuality_label)}</td>
-      <td>${a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-"}</td>
-      <td>${safe(a.check_in)}</td>
-      <td>${safe(a.check_out)}</td>
-      <td>${checkoutBadge(a.checkout_status,a.checkout_label)}</td>
-      <td>${safe(a.break_out)}</td>
-      <td>${safe(a.break_in)}</td>
-      <td>${a.break_late_minutes?`<span class="badge no">${safe(a.break_late_label)}</span>`:(a.break_in?`<span class="badge ok">Tepat waktu kembali</span>`:"-")}</td>
-      <td>${a.break_fine?formatRupiah(a.break_fine):"-"}</td>
-      <td>${safe(a.absent_time)}</td>
-      <td>${safe(a.absent_note)}</td>
-      <td>${a.edit_note?`<span class="edit-badge">${safe(a.edit_note)}<br>${safe(a.edited_at?new Date(a.edited_at).toLocaleString("id-ID"):"")}</span>`:"-"}</td>
-      <td>
-        ${a.check_in_photo?`<a href="${a.check_in_photo}" target="_blank">Foto Masuk</a>`:"-"}
-        ${a.check_out_photo?`<br><a href="${a.check_out_photo}" target="_blank">Foto Pulang</a>`:""}
-      </td>
-      <td>${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Lihat Lokasi</a>`:"-"}</td>
-      <td>${a.overtime_start&&a.overtime_end?a.overtime_start+" - "+a.overtime_end:"-"}</td>
-      <td>${a.face_verified?"✔":"✖"}</td>
-      <td><button class="soft" onclick='openEditAttendanceModal(${JSON.stringify(a)})'>Edit</button></td>
-    </tr>
-  `).join("");
-}
-
-function normalizeTimeForInput(t){
-  if(!t) return "";
-  return String(t).trim().replaceAll(".",":").slice(0,8);
-}
-
-function openEditAttendanceModal(a){
-  if(!a || !a.id){alert("Data absen tidak valid"); return;}
-  editAttendanceId.value = a.id;
-  editAttendanceName.value = (a.employee_name || "-") + " - " + (a.branch || "-");
-  editAttendanceDate.value = a.date || "";
-  editCheckIn.value = normalizeTimeForInput(a.check_in);
-  editCheckOut.value = normalizeTimeForInput(a.check_out);
-  editAttendanceNote.value = a.edit_note || "";
-  editAttendanceModal.classList.remove("hidden");
-}
-
-function closeEditAttendanceModal(){
-  editAttendanceModal.classList.add("hidden");
-  editAttendanceId.value = "";
-  editAttendanceNote.value = "";
-}
-
-async function saveAttendanceCorrection(){
-  const id = editAttendanceId.value;
-  const note = editAttendanceNote.value.trim();
-  if(!id) return alert("Data absen tidak ditemukan");
-
-  const oldData = allAttendance.find(x=>x.id===id) || {};
-  const newCheckIn = editCheckIn.value || null;
-  const newCheckOut = editCheckOut.value || null;
-  const branch = oldData.branch || "";
-
-  const payload = {
-    check_in: newCheckIn,
-    check_out: newCheckOut,
-    edit_note: note,
-    edited_at: new Date().toISOString(),
-    edited_by: currentUser ? (currentUser.name || currentUser.id || "Admin") : "Admin"
-  };
-
-  if(oldData.original_check_in === undefined || oldData.original_check_in === null){
-    payload.original_check_in = oldData.check_in || null;
-  }
-  if(oldData.original_check_out === undefined || oldData.original_check_out === null){
-    payload.original_check_out = oldData.check_out || null;
-  }
-
-  if(newCheckIn){
-    const p = calculatePunctuality(branch, newCheckIn);
-    payload.punctuality_status = p.status;
-    payload.punctuality_minutes = p.minutes;
-    payload.punctuality_label = p.label;
-  }else{
-    payload.punctuality_status = null;
-    payload.punctuality_minutes = 0;
-    payload.punctuality_label = null;
-  }
-
-  if(newCheckOut){
-    const c = calculateCheckout(branch, newCheckOut);
-    payload.checkout_status = c.status;
-    payload.checkout_minutes = c.minutes;
-    payload.checkout_label = c.label;
-  }else{
-    payload.checkout_status = null;
-    payload.checkout_minutes = 0;
-    payload.checkout_label = null;
-  }
-
-  const {error} = await db.from("attendances").update(payload).eq("id", id);
-  if(error){
-    console.error("EDIT ATTENDANCE ERROR:", error);
-    return alert("Gagal simpan koreksi. Pastikan SQL kolom edit absen sudah dijalankan.");
-  }
-
-  alert("Koreksi jam absen berhasil disimpan dan status telat sudah dihitung ulang");
-  closeEditAttendanceModal();
-  await loadAdmin();
-}
-
-function renderTodayAttendance(){
-  const a=myAttendance.find(x=>x.date===today());
-  if(!a){
-    todayAttendanceBox.innerHTML=`<div class="today-item"><b>Status</b>Belum absen hari ini</div>`;
-    return;
-  }
-  todayAttendanceBox.innerHTML=`
-    <div class="today-item"><b>Status</b>${(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir"}</div>
-    <div class="today-item"><b>Status Waktu</b>${safe(a.punctuality_label)}</div>
-    <div class="today-item"><b>Selisih</b>${a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-"}</div>
-    <div class="today-item"><b>Jam Masuk</b>${safe(a.check_in)}</div>
-    <div class="today-item"><b>Jam Pulang</b>${safe(a.check_out)}</div>
-    <div class="today-item"><b>Status Pulang</b>${safe(a.checkout_label)}</div>
-    <div class="today-item"><b>Izin Keluar</b>${safe(a.break_out)}</div>
-    <div class="today-item"><b>Masuk Kembali</b>${safe(a.break_in)}</div>
-    <div class="today-item"><b>Lambat Izin</b>${a.break_late_minutes?safe(a.break_late_label):safe(a.break_in?"Tepat waktu kembali":"-")}</div>
-    <div class="today-item"><b>Potongan Izin</b>${a.break_fine?formatRupiah(a.break_fine):"-"}</div>
-    <div class="today-item"><b>Tidak Hadir</b>${safe(a.absent_time)}</div>
-    <div class="today-item"><b>Keterangan</b>${safe(a.absent_note)}</div>
-    <div class="today-item"><b>Lembur</b>${a.overtime_start&&a.overtime_end?a.overtime_start+" - "+a.overtime_end:"-"}</div>
-    <div class="today-item"><b>Lokasi</b>${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Lihat Lokasi</a>`:"-"}</div>
-  `;
-}
-
-function renderMyAttendance(){
-  myAttendanceTable.innerHTML=myAttendance.map(a=>`
-    <tr>
-      <td>${safe(a.date)}</td>
-      <td>${statusBadge(a.status||"hadir")}</td>
-      <td>${punctualityBadge(a.punctuality_status,a.punctuality_label)}</td>
-      <td>${a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-"}</td>
-      <td>${safe(a.check_in)}</td>
-      <td>${safe(a.check_out)}</td>
-      <td>${checkoutBadge(a.checkout_status,a.checkout_label)}</td>
-      <td>${safe(a.break_out)}</td>
-      <td>${safe(a.break_in)}</td>
-      <td>${a.break_late_minutes?`<span class="badge no">${safe(a.break_late_label)}</span>`:(a.break_in?`<span class="badge ok">Tepat waktu kembali</span>`:"-")}</td>
-      <td>${a.break_fine?formatRupiah(a.break_fine):"-"}</td>
-      <td>${safe(a.absent_time)}</td>
-      <td>${safe(a.absent_note)}</td>
-      <td>${a.overtime_start&&a.overtime_end?a.overtime_start+" - "+a.overtime_end:"-"}</td>
-      <td>${a.latitude&&a.longitude?`<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank">Map</a>`:"-"}</td>
-    </tr>
-  `).join("");
-}
-
-async function startCamera(){
-  try{
-    setScanStatus("Membuka kamera HD... izinkan akses kamera di browser.","busy");
-    if(stream){stream.getTracks().forEach(t=>t.stop());}
-    stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:"user",width:{ideal:640},height:{ideal:480},frameRate:{ideal:24,max:30}},
-      audio:false
-    });
-    video.srcObject=stream;
-    video.style.transform = "scaleX(-1)";
-    video.style.webkitTransform = "scaleX(-1)";
-    const ok=await waitVideoReady();
-    cameraReady=ok;
-    if(ok){
-      setScanStatus(modelsReady?"Siap digunakan. Kamera HD dan model wajah sudah aktif.":"Kamera HD aktif. Model wajah masih loading...","ready");
-      alert("Kamera berhasil dibuka");
-    }else{
-      setScanStatus("Kamera terbuka tapi video belum siap. Tutup dan buka ulang kamera.","error");
-      alert("Kamera belum siap, coba klik Buka Kamera lagi");
+    </main>
+  </div>
+
+  <script>
+    const defaultSettings = [
+      { branch_name: "ASIH HELM", jam_masuk: "07:45", batas_telat: "08:00", jam_pulang: "17:00", batas_izin_menit: 60, denda_izin_per_menit: 1000, timezone: "Asia/Jakarta" },
+      { branch_name: "CAHAYA HELM", jam_masuk: "07:45", batas_telat: "08:00", jam_pulang: "17:00", batas_izin_menit: 60, denda_izin_per_menit: 1000, timezone: "Asia/Jakarta" },
+      { branch_name: "GUDANG ASIH JAYA", jam_masuk: "07:45", batas_telat: "08:00", jam_pulang: "17:00", batas_izin_menit: 60, denda_izin_per_menit: 1000, timezone: "Asia/Jakarta" },
+      { branch_name: "NEW MEDAN HELM 1", jam_masuk: "07:45", batas_telat: "08:00", jam_pulang: "17:00", batas_izin_menit: 60, denda_izin_per_menit: 1000, timezone: "Asia/Jakarta" },
+      { branch_name: "NEW MEDAN HELM 2", jam_masuk: "07:45", batas_telat: "08:00", jam_pulang: "17:00", batas_izin_menit: 60, denda_izin_menit: 1000, denda_izin_per_menit: 1000, timezone: "Asia/Jakarta" },
+      { branch_name: "NEW NHK HELM", jam_masuk: "07:45", batas_telat: "08:00", jam_pulang: "17:00", batas_izin_menit: 60, denda_izin_per_menit: 1000, timezone: "Asia/Jakarta" },
+      { branch_name: "NUSANTARA HELM", jam_masuk: "07:45", batas_telat: "08:00", jam_pulang: "17:00", batas_izin_menit: 60, denda_izin_per_menit: 1000, timezone: "Asia/Jakarta" },
+      { branch_name: "PT. IFMP KALSEL", jam_masuk: "07:45", batas_telat: "08:00", jam_pulang: "17:00", batas_izin_menit: 90, denda_izin_per_menit: 1000, timezone: "Asia/Makassar" },
+      { branch_name: "Pusat", jam_masuk: "07:45", batas_telat: "08:00", jam_pulang: "17:00", batas_izin_menit: 60, denda_izin_per_menit: 1000, timezone: "Asia/Jakarta" },
+      { branch_name: "TOBA HELM", jam_masuk: "07:45", batas_telat: "08:00", jam_pulang: "17:00", batas_izin_menit: 60, denda_izin_per_menit: 1000, timezone: "Asia/Jakarta" }
+    ];
+
+    function loadSettings() {
+      const saved = localStorage.getItem("branch_settings");
+      if (!saved) {
+        localStorage.setItem("branch_settings", JSON.stringify(defaultSettings));
+        return defaultSettings;
+      }
+
+      return JSON.parse(saved).map(item => {
+        if (!item.timezone) {
+          item.timezone = item.branch_name.includes("KALSEL") ? "Asia/Makassar" : "Asia/Jakarta";
+        }
+        return item;
+      });
     }
-    setScanButtons();
-  }catch(e){
-    console.error(e);
-    cameraReady=false;
-    setScanButtons();
-    setScanStatus("Kamera gagal dibuka / izin kamera ditolak.","error");
-    alert("Kamera gagal dibuka / izin kamera ditolak");
-  }
-}
 
-async function getFaceDescriptor(silent=false){
-  if(!modelsReady){if(!silent) alert("Model wajah masih loading");return null}
-  if(!video.srcObject || !cameraReady){if(!silent) alert("Buka kamera dulu sampai status siap");return null}
-  const ready=await waitVideoReady();
-  if(!ready){if(!silent) alert("Video kamera belum siap, klik Buka Kamera lagi");return null}
-  await sleep(500);
-  setScanStatus("Sedang membaca wajah... hadapkan wajah ke kamera, jangan terlalu dekat, cahaya harus terang.","busy");
-  const detection=await faceapi
-    .detectSingleFace(video,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.35}))
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-  if(!detection){
-    if(!silent) alert("Wajah tidak terdeteksi. Pastikan wajah terlihat penuh, cahaya terang, dan jangan terlalu dekat kamera.");
-    return null;
-  }
-  return Array.from(detection.descriptor);
-}
-
-async function registerFace(){
-  await runLocked("Sedang mendaftarkan wajah...", async()=>{
-    const desc=await getFaceDescriptor();
-    if(!desc)return;
-    const {error}=await db.from("employees").update({face_descriptor:desc}).eq("id",currentUser.id);
-    if(error){console.error(error);return alert("Gagal simpan wajah")}
-    currentUser.face_descriptor=desc;
-    alert("Wajah berhasil didaftarkan");
-  });
-}
-
-function distance(a,b){let sum=0; for(let i=0;i<a.length;i++)sum+=(a[i]-b[i])*(a[i]-b[i]); return Math.sqrt(sum);}
-
-async function verifyFace(){
-  if(!currentUser.face_descriptor){
-    alert("Wajah belum didaftarkan. Silakan daftar wajah dulu.");
-    return false;
-  }
-
-  let bestDistance=999;
-  let passed=false;
-
-  for(let i=1;i<=3;i++){
-    setScanStatus(`Verifikasi wajah percobaan ${i}/3... tetap hadap kamera.`,"busy");
-    const live=await getFaceDescriptor(true);
-    if(!live) continue;
-    const d=distance(live,currentUser.face_descriptor);
-    bestDistance=Math.min(bestDistance,d);
-    if(d < 0.68){
-      passed=true;
-      break;
+    function saveAllSettings(data) {
+      localStorage.setItem("branch_settings", JSON.stringify(data));
     }
-    await sleep(350);
-  }
 
-  if(!passed){
-    alert(`Wajah belum cocok. Nilai scan terbaik: ${bestDistance===999?"tidak terbaca":bestDistance.toFixed(3)}. Coba di tempat lebih terang, wajah jangan miring, lalu buka kamera ulang.`);
-    return false;
-  }
-  return true;
-}
+    function getLocalTime(timezone) {
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: timezone || "Asia/Jakarta",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).format(new Date());
+    }
 
-async function requireLocation(){
-  if(!navigator.geolocation){alert("Browser tidak mendukung lokasi/GPS");return null;}
-  return new Promise(resolve=>{
-    navigator.geolocation.getCurrentPosition(
-      p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),
-      err=>{
-        console.error("GPS ERROR",err);
-        alert("Lokasi/GPS wajib diaktifkan dan diizinkan. Absen dibatalkan.");
-        resolve(null);
-      },
-      {enableHighAccuracy:true,timeout:15000,maximumAge:0}
-    );
-  });
-}
+    function getZoneLabel(timezone) {
+      if (timezone === "Asia/Makassar") return "WITA";
+      return "WIB";
+    }
 
-async function captureAndUploadPhoto(type){
-  const canvas=document.createElement("canvas");
-  canvas.width=video.videoWidth||320;
-  canvas.height=video.videoHeight||240;
-  canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
-  const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.8));
-  const fileName=`${currentUser.id}/${today()}-${type}-${Date.now()}.jpg`;
-  const {error}=await db.storage.from("attendance-photos").upload(fileName,blob,{contentType:"image/jpeg",upsert:true});
-  if(error){console.error(error);alert("Gagal upload foto");return null}
-  const {data}=db.storage.from("attendance-photos").getPublicUrl(fileName);
-  return data.publicUrl;
-}
+    function isLateNow(item) {
+      const now = getLocalTime(item.timezone);
+      return now > item.batas_telat;
+    }
 
-async function checkIn(){
-  await runLocked("Memproses absen masuk...", async()=>{
-    const loc=await requireLocation();
-    if(!loc)return;
-    const ok=await verifyFace();
-    if(!ok)return alert("Wajah tidak cocok");
-    setScanStatus("Wajah cocok. Upload foto dan simpan absen...","busy");
-    const photoUrl=await captureAndUploadPhoto("masuk");
-    if(!photoUrl)return;
-    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
-    if(exist)return alert("Kamu sudah punya data absen hari ini");
-    const jamMasuk=nowTime();
-    const p=calculatePunctuality(currentUser.branch,jamMasuk);
-    const {error}=await db.from("attendances").insert({
-      employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:"hadir",
-      check_in:jamMasuk,latitude:loc.lat,longitude:loc.lng,check_in_photo:photoUrl,face_verified:true,
-      punctuality_status:p.status,punctuality_minutes:p.minutes,punctuality_label:p.label
-    });
-    if(error){console.error(error);return alert("Gagal simpan absen. Pastikan SQL tambahan sudah dijalankan.")}
-    alert("Absen masuk berhasil");
-    await loadMyAttendance();
-  });
-}
+    function formatRupiah(value) {
+      return "Rp " + Number(value || 0).toLocaleString("id-ID");
+    }
 
-async function checkOut(){
-  await runLocked("Memproses absen pulang...", async()=>{
-    const loc=await requireLocation();
-    if(!loc)return;
-    const ok=await verifyFace();
-    if(!ok)return alert("Wajah tidak cocok");
-    setScanStatus("Wajah cocok. Upload foto dan simpan absen pulang...","busy");
-    const photoUrl=await captureAndUploadPhoto("pulang");
-    if(!photoUrl)return;
-    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
-    if(!exist)return alert("Belum ada absen masuk hari ini");
-    if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
-    const jamPulang=nowTime();
-    const c=calculateCheckout(currentUser.branch,jamPulang);
-    const {error}=await db.from("attendances").update({
-      check_out:jamPulang,check_out_photo:photoUrl,latitude:loc.lat,longitude:loc.lng,
-      checkout_status:c.status,checkout_minutes:c.minutes,checkout_label:c.label
-    }).eq("id",exist.id);
-    if(error){console.error(error);return alert("Gagal simpan pulang")}
-    alert("Absen pulang berhasil");
-    await loadMyAttendance();
-  });
-}
+    function renderTable() {
+      const data = loadSettings();
+      const tbody = document.getElementById("settingTable");
+      tbody.innerHTML = "";
 
-async function breakOut(){
-  await runLocked("Memproses izin keluar...", async()=>{
-    const loc=await requireLocation();
-    if(!loc)return;
-    const ok=await verifyFace();
-    if(!ok)return alert("Wajah tidak cocok");
-    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
-    if(!exist)return alert("Absen masuk dulu sebelum izin keluar");
-    if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
-    if(exist.break_out && !exist.break_in)return alert("Kamu sedang izin keluar. Klik Masuk Kembali dulu.");
-    if(exist.break_out && exist.break_in)return alert("Izin keluar hari ini sudah selesai. Versi ini mendukung 1 kali izin keluar per hari.");
-    const b=getBreakSetting(currentUser.branch);
-    const jam=nowTime();
-    const {error}=await db.from("attendances").update({
-      break_out:jam,
-      break_limit_minutes:b.limit,
-      break_fine_per_minute:b.fine,
-      break_late_minutes:0,
-      break_late_label:null,
-      break_fine:0,
-      latitude:loc.lat,longitude:loc.lng
-    }).eq("id",exist.id);
-    if(error){console.error(error);return alert("Gagal simpan izin keluar. Pastikan SQL kolom izin keluar sudah dijalankan.")}
-    alert(`Izin keluar tercatat jam ${jam}. Batas kembali ${b.limit} menit.`);
-    await loadMyAttendance();
-  });
-}
+      data.forEach(item => {
+        const now = getLocalTime(item.timezone);
+        const late = isLateNow(item);
 
-async function breakIn(){
-  await runLocked("Memproses masuk kembali...", async()=>{
-    const loc=await requireLocation();
-    if(!loc)return;
-    const ok=await verifyFace();
-    if(!ok)return alert("Wajah tidak cocok");
-    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
-    if(!exist)return alert("Belum ada absen masuk hari ini");
-    if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
-    if(!exist.break_out)return alert("Belum ada data izin keluar. Klik Izin Keluar dulu.");
-    if(exist.break_in)return alert("Masuk kembali hari ini sudah tercatat");
-    const jam=nowTime();
-    const c=calculateBreakReturn(currentUser.branch,exist.break_out,jam);
-    const {error}=await db.from("attendances").update({
-      break_in:jam,
-      break_limit_minutes:c.limit,
-      break_fine_per_minute:c.finePerMinute,
-      break_late_minutes:c.minutes,
-      break_late_label:c.label,
-      break_fine:c.fine,
-      latitude:loc.lat,longitude:loc.lng
-    }).eq("id",exist.id);
-    if(error){console.error(error);return alert("Gagal simpan masuk kembali. Pastikan SQL kolom izin keluar sudah dijalankan.")}
-    if(c.minutes>0) alert(`Masuk kembali tercatat. ${c.label}. Potongan ${formatRupiah(c.fine)}.`);
-    else alert("Masuk kembali tercatat. Tepat waktu kembali.");
-    await loadMyAttendance();
-  });
-}
+        tbody.innerHTML += `
+          <tr>
+            <td>${item.branch_name}</td>
+            <td>${item.jam_masuk}</td>
+            <td>${item.batas_telat}</td>
+            <td>${item.jam_pulang}</td>
+            <td>${item.batas_izin_menit} menit</td>
+            <td>${formatRupiah(item.denda_izin_per_menit)}</td>
+            <td><span class="zone">${getZoneLabel(item.timezone)} - ${item.timezone}</span></td>
+            <td>${now} ${getZoneLabel(item.timezone)}</td>
+            <td>${late ? '<span class="danger">Sudah Lewat Batas Telat</span>' : '<span class="success">Belum Telat</span>'}</td>
+          </tr>
+        `;
+      });
+    }
 
-async function markAbsent(){
-  const reason=absentReason.value;
-  const note=absentNote.value.trim();
-  if(!reason)return alert("Pilih alasan tidak hadir dulu");
-  if(!note)return alert("Keterangan tidak hadir wajib diisi");
-  const loc=await requireLocation();
-  if(!loc)return;
-  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
-  if(exist)return alert("Kamu sudah punya data absen hari ini");
-  const fullNote=reason+" - "+note;
-  const {error}=await db.from("attendances").insert({
-    employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:"tidak_hadir",
-    absent_time:nowTime(),absent_note:fullNote,latitude:loc.lat,longitude:loc.lng,face_verified:false
-  });
-  if(error){console.error(error);return alert("Gagal simpan tidak hadir. Pastikan SQL tambahan sudah dijalankan.")}
-  alert("Data tidak hadir berhasil disimpan");
-  absentReason.value=""; absentNote.value="";
-  await loadMyAttendance();
-}
+    function saveSetting() {
+      const branchName = document.getElementById("branchName").value;
+      const jamMasuk = document.getElementById("jamMasuk").value;
+      const batasTelat = document.getElementById("batasTelat").value;
+      const jamPulang = document.getElementById("jamPulang").value;
+      const batasIzin = Number(document.getElementById("batasIzin").value);
+      const dendaIzin = Number(document.getElementById("dendaIzin").value);
+      const timezone = document.getElementById("timezone").value;
 
-async function saveOvertime(){
-  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
-  if(!exist)return alert("Absen masuk dulu");
-  if(exist.status==="tidak_hadir")return alert("Tidak bisa input lembur karena status hari ini Tidak Hadir");
-  if(!otStart.value || !otEnd.value)return alert("Jam mulai dan jam selesai lembur wajib diisi");
-  const {error}=await db.from("attendances").update({overtime_start:otStart.value,overtime_end:otEnd.value,overtime_note:otNote.value}).eq("id",exist.id);
-  if(error){console.error(error);return alert("Gagal simpan lembur")}
-  alert("Lembur disimpan");
-  await loadMyAttendance();
-}
+      let data = loadSettings();
 
+      const index = data.findIndex(item => item.branch_name === branchName);
 
-function formatRupiah(num){
-  num = Number(num || 0);
-  return "Rp " + num.toLocaleString("id-ID");
-}
-function getFinePerMinute(){
-  return Number(localStorage.getItem("fortuna_fine_per_minute") || 1000);
-}
-function getCurrentMonth(){
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,"0");
-  return `${y}-${m}`;
-}
-function renderPenaltyDefaults(){
-  if(document.getElementById("finePerMinute")) finePerMinute.value = getFinePerMinute();
-  if(document.getElementById("penaltyMonth") && !penaltyMonth.value) penaltyMonth.value = getCurrentMonth();
-}
-function saveFineSetting(){
-  const value = Number(finePerMinute.value || 0);
-  if(value < 0) return alert("Denda per menit tidak boleh minus");
-  localStorage.setItem("fortuna_fine_per_minute", String(value));
-  alert("Setting denda berhasil disimpan: " + formatRupiah(value) + " per menit");
-  renderPenaltyReport();
-}
-function renderPenaltyBranches(){
-  if(!document.getElementById("penaltyBranch")) return;
-  const current = penaltyBranch.value || "all";
-  const branches=[...new Set(allEmployees.map(e=>(e.branch||"").trim()).filter(Boolean))].sort();
-  penaltyBranch.innerHTML = `<option value="all">Semua Cabang / Gudang</option>` + branches.map(b=>`<option value="${b}">${b}</option>`).join("");
-  if([...penaltyBranch.options].some(o=>o.value===current)) penaltyBranch.value = current;
-}
-function renderPenaltyEmployees(){
-  if(!document.getElementById("penaltyEmployee")) return;
-  const current = penaltyEmployee.value || "all";
-  const branchFilter = document.getElementById("penaltyBranch")?.value || "all";
-  const employees = allEmployees
-    .filter(e=>branchFilter==="all" || (e.branch||"")===branchFilter)
-    .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
-  penaltyEmployee.innerHTML = `<option value="all">Semua Karyawan</option>` + employees.map(e=>`<option value="${e.id}">${e.name||"-"} - ${e.branch||"-"}</option>`).join("");
-  if([...penaltyEmployee.options].some(o=>o.value===current)) penaltyEmployee.value = current;
-}
-function getPenaltyReport(){
-  const month = document.getElementById("penaltyMonth")?.value || getCurrentMonth();
-  const branchFilter = document.getElementById("penaltyBranch")?.value || "all";
-  const employeeFilter = document.getElementById("penaltyEmployee")?.value || "all";
-  const fine = getFinePerMinute();
-  const report = {};
-
-  allAttendance.forEach(a=>{
-    if(!a.date || !String(a.date).startsWith(month)) return;
-    if((a.status||"hadir") === "tidak_hadir") return;
-    if((a.punctuality_status||"") !== "late") return;
-    if(branchFilter !== "all" && (a.branch||"") !== branchFilter) return;
-    if(employeeFilter !== "all" && a.employee_id !== employeeFilter) return;
-
-    const minutes = Number(a.punctuality_minutes || 0);
-    if(minutes <= 0) return;
-    const key = a.employee_id || a.employee_name || "unknown";
-    if(!report[key]){
-      report[key] = {
-        employee_id:a.employee_id,
-        name:a.employee_name || "-",
-        branch:a.branch || "-",
-        month,
-        late_days:0,
-        total_minutes:0,
-        break_minutes:0,
-        fine_per_minute:fine,
-        break_fine_per_minute:Number(a.break_fine_per_minute || fine),
-        total_fine:0,
-        break_fine:0,
-        details:[],
-        break_details:[]
+      const newData = {
+        branch_name: branchName,
+        jam_masuk: jamMasuk,
+        batas_telat: batasTelat,
+        jam_pulang: jamPulang,
+        batas_izin_menit: batasIzin,
+        denda_izin_per_menit: dendaIzin,
+        timezone: timezone
       };
+
+      if (index >= 0) {
+        data[index] = newData;
+      } else {
+        data.push(newData);
+      }
+
+      saveAllSettings(data);
+      renderTable();
+
+      alert("Setting jam kerja cabang berhasil disimpan.");
     }
-    report[key].late_days += 1;
-    report[key].total_minutes += minutes;
-    report[key].details.push({
-      date:a.date,
-      check_in:a.check_in || "-",
-      minutes,
-      label:a.punctuality_label || (`Terlambat ${minutes} menit`)
+
+    document.getElementById("branchName").addEventListener("change", function () {
+      const branchName = this.value;
+
+      if (branchName.includes("KALSEL")) {
+        document.getElementById("timezone").value = "Asia/Makassar";
+      } else {
+        document.getElementById("timezone").value = "Asia/Jakarta";
+      }
     });
-  });
 
-  allAttendance.forEach(a=>{
-    if(!a.date || !String(a.date).startsWith(month)) return;
-    if(branchFilter !== "all" && (a.branch||"") !== branchFilter) return;
-    if(employeeFilter !== "all" && a.employee_id !== employeeFilter) return;
-    const minutes = Number(a.break_late_minutes || 0);
-    if(minutes <= 0) return;
-    const key = a.employee_id || a.employee_name || "unknown";
-    if(!report[key]){
-      report[key] = {
-        employee_id:a.employee_id,
-        name:a.employee_name || "-",
-        branch:a.branch || "-",
-        month,
-        late_days:0,
-        total_minutes:0,
-        break_minutes:0,
-        fine_per_minute:fine,
-        break_fine_per_minute:Number(a.break_fine_per_minute || fine),
-        total_fine:0,
-        break_fine:0,
-        details:[],
-        break_details:[]
-      };
-    }
-    report[key].break_minutes += minutes;
-    report[key].break_fine += Number(a.break_fine || (minutes * Number(a.break_fine_per_minute || fine)));
-    report[key].break_details.push({date:a.date, out:a.break_out||"-", back:a.break_in||"-", minutes, label:a.break_late_label||`Lambat karena izin keluar ${minutes} menit`});
-  });
+    renderTable();
 
-  return Object.values(report).map(r=>{
-    r.total_fine = (r.total_minutes * fine) + (r.break_fine || 0);
-    r.details.sort((x,y)=>String(x.date).localeCompare(String(y.date)));
-    if(r.break_details) r.break_details.sort((x,y)=>String(x.date).localeCompare(String(y.date)));
-    return r;
-  }).sort((a,b)=>b.total_minutes-a.total_minutes || String(a.name).localeCompare(String(b.name)));
-}
-function renderPenaltyReport(){
-  renderPenaltyDefaults();
-  const rows = getPenaltyReport();
-  const totalMinutes = rows.reduce((s,r)=>s+r.total_minutes+(r.break_minutes||0),0);
-  const totalMoney = rows.reduce((s,r)=>s+r.total_fine,0);
-
-  if(document.getElementById("penaltyEmpCount")) penaltyEmpCount.innerText = rows.length;
-  if(document.getElementById("penaltyTotalMinutes")) penaltyTotalMinutes.innerText = totalMinutes;
-  if(document.getElementById("penaltyTotalMoney")) penaltyTotalMoney.innerText = formatRupiah(totalMoney);
-  if(!document.getElementById("penaltyTable")) return;
-
-  penaltyTable.innerHTML = rows.length ? rows.map(r=>`
-    <tr>
-      <td>${safe(r.name)}</td>
-      <td>${safe(r.branch)}</td>
-      <td>${safe(r.month)}</td>
-      <td>${r.late_days} hari</td>
-      <td><b>${r.total_minutes} menit</b></td>
-      <td><b>${r.break_minutes||0} menit</b></td>
-      <td>${formatRupiah(r.fine_per_minute)}</td>
-      <td><b>${formatRupiah(r.total_fine)}</b></td>
-      <td>${[...r.details.map(d=>`${d.date} masuk (${d.check_in}) = ${d.minutes} menit`), ...(r.break_details||[]).map(d=>`${d.date} izin keluar (${d.out}-${d.back}) = ${d.minutes} menit`)].join("<br>")}</td>
-      <td><button class="danger" onclick="deletePenaltyHistory('${r.employee_id}','${String(r.name).replace(/'/g,"\\'")}')">Hapus Riwayat</button></td>
-    </tr>
-  `).join("") : `<tr><td colspan="10" class="muted">Belum ada data terlambat pada bulan/filter ini.</td></tr>`;
-}
-function buildPenaltyPDF(){
-  renderPenaltyDefaults();
-  const rows = getPenaltyReport();
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF("landscape");
-  const month = document.getElementById("penaltyMonth")?.value || getCurrentMonth();
-  const branchFilter = document.getElementById("penaltyBranch")?.value || "all";
-  const employeeText = document.getElementById("penaltyEmployee")?.value === "all" ? "Semua Karyawan" : (penaltyEmployee.options[penaltyEmployee.selectedIndex]?.text || "-");
-  const totalMinutes = rows.reduce((s,r)=>s+r.total_minutes+(r.break_minutes||0),0);
-  const totalMoney = rows.reduce((s,r)=>s+r.total_fine,0);
-
-  doc.setFontSize(18);
-  doc.text("Laporan Potongan Telat Bulanan",14,15);
-  doc.setFontSize(10);
-  doc.text("Bulan: " + month,14,23);
-  doc.text("Cabang/Gudang: " + (branchFilter==="all"?"Semua Cabang / Gudang":branchFilter),14,29);
-  doc.text("Karyawan: " + employeeText,14,35);
-  doc.text("Denda per menit: " + formatRupiah(getFinePerMinute()),14,41);
-  doc.text("Tanggal cetak: " + new Date().toLocaleString("id-ID"),14,47);
-  doc.text("Total menit telat: " + totalMinutes + " menit",14,53);
-  doc.text("Total potongan: " + formatRupiah(totalMoney),14,59);
-
-  doc.autoTable({
-    startY:68,
-    head:[["Nama","Cabang/Gudang","Bulan","Hari Telat","Telat Masuk","Lambat Izin","Denda/Menit","Total Potongan","Riwayat Potongan"]],
-    body:rows.map(r=>[
-      safe(r.name), safe(r.branch), safe(r.month), r.late_days+" hari", r.total_minutes+" menit", (r.break_minutes||0)+" menit", formatRupiah(r.fine_per_minute), formatRupiah(r.total_fine),
-      [...r.details.map(d=>`${d.date} masuk ${d.check_in} = ${d.minutes} menit`), ...(r.break_details||[]).map(d=>`${d.date} izin ${d.out}-${d.back} = ${d.minutes} menit`)].join("\n")
-    ]),
-    styles:{fontSize:8,cellPadding:2,overflow:"linebreak"},
-    headStyles:{fillColor:[15,23,42]},
-    alternateRowStyles:{fillColor:[248,250,252]},
-    columnStyles:{7:{cellWidth:70}}
-  });
-  return doc;
-}
-function openPenaltyPDF(mode="download"){
-  const doc = buildPenaltyPDF();
-  const month = document.getElementById("penaltyMonth")?.value || getCurrentMonth();
-  if(mode === "preview"){
-    const blobUrl = doc.output("bloburl");
-    pdfPreviewFrame.src = blobUrl;
-    pdfPreviewModal.classList.remove("hidden");
-    return;
-  }
-  doc.save("laporan_denda_telat_"+month+".pdf");
-}
-function previewPenaltyPDF(){ openPenaltyPDF("preview"); }
-function exportPenaltyPDF(){ openPenaltyPDF("download"); }
-
-async function deletePenaltyHistory(employeeId, employeeName){
-  if(!employeeId) return alert("ID karyawan tidak ditemukan");
-  const month = document.getElementById("penaltyMonth")?.value || getCurrentMonth();
-  const branchFilter = document.getElementById("penaltyBranch")?.value || "all";
-  const yakin = confirm(`Hapus riwayat telat/denda ${employeeName} untuk bulan ${month}?
-
-Data absen tetap ada, hanya status telat dan potongan izin yang dikosongkan.`);
-  if(!yakin) return;
-
-  let q = db.from("attendances").update({
-    punctuality_status:null,
-    punctuality_minutes:0,
-    punctuality_label:null,
-    break_late_minutes:0,
-    break_late_label:null,
-    break_fine:0
-  }).eq("employee_id",employeeId).gte("date",month+"-01").lt("date",getNextMonthStart(month));
-  if(branchFilter !== "all") q = q.eq("branch",branchFilter);
-  const {error}=await q;
-  if(error){console.error(error); return alert("Gagal hapus riwayat. Cek RLS/kolom Supabase.");}
-  alert("Riwayat telat/denda berhasil dihapus");
-  await loadAdmin();
-  showPage("penaltyPage");
-  renderPenaltyReport();
-}
-async function deleteVisiblePenaltyHistory(){
-  const rows = getPenaltyReport();
-  if(!rows.length) return alert("Tidak ada riwayat pada filter ini");
-  const month = document.getElementById("penaltyMonth")?.value || getCurrentMonth();
-  const yakin = confirm(`Hapus SEMUA riwayat telat/denda yang tampil di filter bulan ${month}?
-
-Data absen tetap ada, hanya status telat dan potongan izin yang dikosongkan.`);
-  if(!yakin) return;
-  for(const r of rows){
-    if(r.employee_id){
-      let q = db.from("attendances").update({
-        punctuality_status:null,
-        punctuality_minutes:0,
-        punctuality_label:null,
-        break_late_minutes:0,
-        break_late_label:null,
-        break_fine:0
-      }).eq("employee_id",r.employee_id).gte("date",month+"-01").lt("date",getNextMonthStart(month));
-      if((document.getElementById("penaltyBranch")?.value || "all") !== "all") q = q.eq("branch",document.getElementById("penaltyBranch").value);
-      const {error}=await q;
-      if(error){console.error(error); return alert("Sebagian riwayat gagal dihapus. Cek console.");}
-    }
-  }
-  alert("Semua riwayat pada filter ini berhasil dihapus");
-  await loadAdmin();
-  showPage("penaltyPage");
-  renderPenaltyReport();
-}
-function getNextMonthStart(month){
-  const [y,m] = String(month).split("-").map(Number);
-  const d = new Date(y, m, 1);
-  const yy = d.getFullYear();
-  const mm = String(d.getMonth()+1).padStart(2,"0");
-  return `${yy}-${mm}-01`;
-}
-
-function buildPDF(){
-  const data=getFilteredAttendance();
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF("landscape");
-  const start=filterStart?.value || "Semua";
-  const end=filterEnd?.value || "Semua";
-  const branch=filterBranch?.value || "Semua Cabang / Gudang";
-  const empText=filterEmployee?.value==="all" ? "Semua Karyawan" : (filterEmployee.options[filterEmployee.selectedIndex]?.text || "-");
-  const statusText=filterStatus?.value==="all" ? "Semua Status" : (filterStatus.value==="hadir" ? "Hadir" : "Tidak Hadir");
-  const punctualityText=filterPunctuality?.value==="all" ? "Semua Waktu" : (filterPunctuality.value==="early"?"Lebih Awal":filterPunctuality.value==="late"?"Terlambat":"Tepat Waktu");
-  const checkoutText=filterCheckout?.value==="early_leave" ? "Pulang Lebih Awal" : "Semua Pulang";
-  const hadir=data.filter(a=>(a.status||"hadir")!=="tidak_hadir").length;
-  const tidak=data.filter(a=>a.status==="tidak_hadir").length;
-  const lembur=data.filter(a=>a.overtime_start && a.overtime_end).length;
-  const telat=data.filter(a=>a.punctuality_status==="late").length;
-  const awal=data.filter(a=>a.punctuality_status==="early").length;
-  const pulangAwal=data.filter(a=>a.checkout_status==="early_leave").length;
-
-  doc.setFontSize(18);
-  doc.text("Laporan Absensi Fortuna Absen",14,15);
-  doc.setFontSize(10);
-  doc.text("Periode laporan: "+start+" sampai "+end,14,23);
-  doc.text("Filter cabang/gudang: "+branch,14,29);
-  doc.text("Filter karyawan: "+empText,14,35);
-  doc.text("Filter status: "+statusText,14,41);
-  doc.text("Filter waktu: "+punctualityText,14,47);
-  doc.text("Filter pulang: "+checkoutText,14,53);
-  doc.text("Tanggal cetak: "+new Date().toLocaleString("id-ID"),14,59);
-
-  doc.setFillColor(15,23,42); doc.roundedRect(14,66,42,16,3,3,"F");
-  doc.setFillColor(200,155,44); doc.roundedRect(60,66,42,16,3,3,"F");
-  doc.setFillColor(153,27,27); doc.roundedRect(106,66,46,16,3,3,"F");
-  doc.setFillColor(30,64,175); doc.roundedRect(156,66,42,16,3,3,"F");
-  doc.setFillColor(194,65,12); doc.roundedRect(202,66,42,16,3,3,"F");
-  doc.setFillColor(120,53,15); doc.roundedRect(248,66,42,16,3,3,"F");
-  doc.setTextColor(255,255,255); doc.setFontSize(8);
-  doc.text("HADIR",18,72); doc.setFontSize(13); doc.text(String(hadir),18,79);
-  doc.setFontSize(8); doc.text("LEMBUR",64,72); doc.setFontSize(13); doc.text(String(lembur),64,79);
-  doc.setFontSize(8); doc.text("TIDAK HADIR",110,72); doc.setFontSize(13); doc.text(String(tidak),110,79);
-  doc.setFontSize(8); doc.text("LEBIH AWAL",160,72); doc.setFontSize(13); doc.text(String(awal),160,79);
-  doc.setFontSize(8); doc.text("TERLAMBAT",206,72); doc.setFontSize(13); doc.text(String(telat),206,79);
-  doc.setFontSize(8); doc.text("PULANG AWAL",252,72); doc.setFontSize(13); doc.text(String(pulangAwal),252,79);
-  doc.setTextColor(0,0,0);
-
-  const rows=data.map(a=>[
-    safe(a.employee_name),safe(a.branch),safe(a.date),(a.status||"hadir")==="tidak_hadir"?"Tidak Hadir":"Hadir",
-    safe(a.punctuality_label),a.punctuality_status?safe(a.punctuality_minutes)+" menit":"-",safe(a.check_in),safe(a.check_out),safe(a.checkout_label),safe(a.break_out),safe(a.break_in),a.break_late_minutes?safe(a.break_late_label):"-",a.break_fine?formatRupiah(a.break_fine):"-",safe(a.absent_time),safe(a.absent_note),
-    a.overtime_start&&a.overtime_end?`${a.overtime_start} - ${a.overtime_end}`:"-",
-    safe(a.overtime_note),a.latitude&&a.longitude?`${a.latitude}, ${a.longitude}`:"-"
-  ]);
-
-  doc.autoTable({
-    startY:90,
-    head:[["Nama","Cabang/Gudang","Tanggal","Status","Status Waktu","Selisih","Masuk","Pulang","Status Pulang","Izin Keluar","Masuk Kembali","Lambat Izin","Potongan Izin","Tidak Hadir","Alasan","Lembur","Ket. Lembur","Lokasi"]],
-    body:rows,
-    styles:{fontSize:8,cellPadding:2},
-    headStyles:{fillColor:[15,23,42]},
-    alternateRowStyles:{fillColor:[248,250,252]}
-  });
-
-  const penaltyRowsForPdf = getPenaltyReport();
-  if(penaltyRowsForPdf.length){
-    doc.addPage("landscape");
-    doc.setFontSize(16);
-    doc.text("Rekap Denda Telat Bulanan",14,15);
-    doc.setFontSize(10);
-    doc.text("Denda per menit: "+formatRupiah(getFinePerMinute()),14,23);
-    doc.autoTable({
-      startY:30,
-      head:[["Nama","Cabang/Gudang","Bulan","Hari Telat","Telat Masuk","Lambat Izin","Denda/Menit","Total Potongan","Riwayat Potongan"]],
-      body:penaltyRowsForPdf.map(r=>[
-        safe(r.name),safe(r.branch),safe(r.month),r.late_days+" hari",r.total_minutes+" menit",(r.break_minutes||0)+" menit",formatRupiah(r.fine_per_minute),formatRupiah(r.total_fine),
-        [...r.details.map(d=>`${d.date} masuk ${d.check_in} = ${d.minutes} menit`), ...(r.break_details||[]).map(d=>`${d.date} izin ${d.out}-${d.back} = ${d.minutes} menit`)].join("\\n")
-      ]),
-      styles:{fontSize:8,cellPadding:2,overflow:"linebreak"},
-      headStyles:{fillColor:[15,23,42]},
-      alternateRowStyles:{fillColor:[248,250,252]},
-      columnStyles:{7:{cellWidth:70}}
-    });
-  }
-  return doc;
-}
-
-function exportPDF(mode="download"){
-  const doc=buildPDF();
-  if(mode==="preview"){
-    const blobUrl=doc.output("bloburl");
-    pdfPreviewFrame.src=blobUrl;
-    pdfPreviewModal.classList.remove("hidden");
-    return;
-  }
-  doc.save("laporan_absensi_fortuna_filter.pdf");
-}
-
-function previewPDF(){
-  exportPDF("preview");
-}
-
-function closePDFPreview(){
-  pdfPreviewModal.classList.add("hidden");
-  pdfPreviewFrame.src="";
-}
-</script>
+    setInterval(renderTable, 60000);
+  </script>
 </body>
 </html>
