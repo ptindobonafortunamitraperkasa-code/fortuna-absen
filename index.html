@@ -16,6 +16,8 @@ body{margin:0;font-family:Inter,Arial,sans-serif;background:#f4f7fb;color:#0f172
 .hidden{display:none!important}
 button{border:0;border-radius:12px;padding:11px 15px;font-weight:800;cursor:pointer;margin:4px}
 input,select{border:1px solid #dbe3ef;border-radius:12px;padding:12px;background:#fff;color:#0f172a;margin:5px;min-height:44px}
+select[multiple]{min-height:120px}
+.filter-help{font-size:11px;color:#64748b;margin:0 5px;font-weight:700}
 a{color:#2563eb;text-decoration:none;font-weight:700}
 .login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#eef4ff,#ffffff)}
 .login-card{width:380px;background:#fff;padding:32px;border-radius:28px;box-shadow:0 25px 70px #1e293b25;border:1px solid #e5eaf3}
@@ -131,7 +133,10 @@ input,select{width:100%}
       <div class="modal-note">Admin bisa mengisi alasan koreksi jika diperlukan. Contoh: sinyal hilang, HP error, atau gangguan jaringan. Sistem akan hitung ulang status telat/pulang otomatis.</div>
       <textarea id="editAttendanceNote" style="width:100%;min-height:90px" placeholder="Keterangan koreksi admin (opsional)"></textarea>
     </div>
-    <div class="modal-actions">
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="danger" onclick="clearAttendanceField('check_out')">Hapus Absen Pulang</button>
+      <button class="danger" onclick="clearAttendanceField('check_in')">Hapus Absen Masuk</button>
+      <button class="danger" onclick="deleteAttendanceRecord()">Jadikan Belum Absen</button>
       <button class="soft" onclick="closeEditAttendanceModal()">Batal</button>
       <button class="goldbtn" onclick="saveAttendanceCorrection()">Simpan Koreksi</button>
     </div>
@@ -270,9 +275,12 @@ input,select{width:100%}
             <option value="all">Semua Pulang</option>
             <option value="early_leave">Pulang Lebih Awal</option>
           </select>
-          <select id="filterBranch" onchange="renderAttendance()">
-            <option value="all">Semua Cabang / Gudang</option>
-          </select>
+          <div>
+            <select id="filterBranch" multiple size="6" onchange="normalizeBranchSelection(); renderAttendance()">
+              <option value="all" selected>Semua Cabang / Gudang</option>
+            </select>
+            <div class="filter-help">Bisa pilih beberapa cabang. CTRL + klik untuk pilih banyak / exclude PT IFMP.</div>
+          </div>
           <select id="filterEmployee" onchange="renderAttendance()">
             <option value="all">Semua Karyawan</option>
           </select>
@@ -683,7 +691,32 @@ function renderEmployees(){
 
 function renderFilterBranches(){
   const branches=[...new Set(allEmployees.map(e=>(e.branch||"").trim()).filter(Boolean))].sort();
-  filterBranch.innerHTML = `<option value="all">Semua Cabang / Gudang</option>` + branches.map(b=>`<option value="${b}">${b}</option>`).join("");
+  filterBranch.innerHTML = `<option value="all" selected>Semua Cabang / Gudang</option>` + branches.map(b=>`<option value="${b}">${b}</option>`).join("");
+}
+
+function getSelectedBranches(){
+  if(!document.getElementById("filterBranch")) return ["all"];
+  const selected=Array.from(filterBranch.selectedOptions||[]).map(o=>o.value);
+  if(selected.length===0 || selected.includes("all")) return ["all"];
+  return selected;
+}
+
+function getSelectedBranchText(){
+  const selected=getSelectedBranches();
+  if(selected.includes("all")) return "Semua Cabang / Gudang";
+  return selected.join(", ");
+}
+
+function normalizeBranchSelection(){
+  if(!document.getElementById("filterBranch")) return;
+  const selected=Array.from(filterBranch.selectedOptions||[]).map(o=>o.value);
+  if(selected.length>1 && selected.includes("all")){
+    Array.from(filterBranch.options).forEach(o=>{ if(o.value==="all") o.selected=false; });
+  }
+  if(Array.from(filterBranch.selectedOptions||[]).length===0){
+    const allOpt=Array.from(filterBranch.options).find(o=>o.value==="all");
+    if(allOpt) allOpt.selected=true;
+  }
 }
 
 function renderFilterEmployees(){
@@ -855,7 +888,7 @@ function getFilteredAttendance(){
   const stat=filterStatus?.value || "all";
   const punctuality=filterPunctuality?.value || "all";
   const checkout=filterCheckout?.value || "all";
-  const branch=filterBranch?.value || "all";
+  const selectedBranches=getSelectedBranches();
   const emp=filterEmployee?.value || "all";
   return allAttendance.filter(a=>{
     const s=a.status||"hadir";
@@ -864,14 +897,16 @@ function getFilteredAttendance(){
     if(stat!=="all" && s!==stat) return false;
     if(punctuality!=="all" && (a.punctuality_status||"")!==punctuality) return false;
     if(checkout!=="all" && (a.checkout_status||"")!==checkout) return false;
-    if(branch!=="all" && (a.branch||"")!==branch) return false;
+    if(!selectedBranches.includes("all") && !selectedBranches.includes((a.branch||"").trim())) return false;
     if(emp!=="all" && a.employee_id!==emp) return false;
     return true;
   });
 }
 
 function resetFilters(){
-  filterStart.value=""; filterEnd.value=""; filterStatus.value="all"; if(document.getElementById("filterPunctuality"))filterPunctuality.value="all"; if(document.getElementById("filterCheckout"))filterCheckout.value="all"; filterBranch.value="all"; filterEmployee.value="all";
+  filterStart.value=""; filterEnd.value=""; filterStatus.value="all"; if(document.getElementById("filterPunctuality"))filterPunctuality.value="all"; if(document.getElementById("filterCheckout"))filterCheckout.value="all";
+  if(document.getElementById("filterBranch")){ Array.from(filterBranch.options).forEach(o=>o.selected = (o.value==="all")); }
+  filterEmployee.value="all";
   renderAttendance();
 }
 
@@ -996,6 +1031,69 @@ async function saveAttendanceCorrection(){
   }
 
   alert("Koreksi jam absen berhasil disimpan dan status telat sudah dihitung ulang");
+  closeEditAttendanceModal();
+  await loadAdmin();
+}
+
+async function clearAttendanceField(type){
+  const id = editAttendanceId.value;
+  if(!id) return alert("Data absen tidak ditemukan");
+
+  const oldData = allAttendance.find(x=>x.id===id) || {};
+  const isCheckout = type === "check_out";
+  const label = isCheckout ? "absen pulang" : "absen masuk";
+  const ok = confirm(`Yakin hapus ${label} untuk ${oldData.employee_name || "karyawan"}?`);
+  if(!ok) return;
+
+  const payload = {
+    edit_note: (editAttendanceNote.value.trim() || `Admin menghapus ${label}`),
+    edited_at: new Date().toISOString(),
+    edited_by: currentUser ? (currentUser.name || currentUser.id || "Admin") : "Admin"
+  };
+
+  if(isCheckout){
+    payload.original_check_out = oldData.original_check_out || oldData.check_out || null;
+    payload.check_out = null;
+    payload.check_out_photo = null;
+    payload.checkout_status = null;
+    payload.checkout_minutes = 0;
+    payload.checkout_label = null;
+  }else{
+    payload.original_check_in = oldData.original_check_in || oldData.check_in || null;
+    payload.check_in = null;
+    payload.check_in_photo = null;
+    payload.punctuality_status = null;
+    payload.punctuality_minutes = 0;
+    payload.punctuality_label = null;
+  }
+
+  const {error} = await db.from("attendances").update(payload).eq("id", id);
+  if(error){
+    console.error("CLEAR ATTENDANCE ERROR:", error);
+    return alert("Gagal hapus jam absen. Cek kolom database/policy Supabase.");
+  }
+
+  alert(`${label} berhasil dihapus.`);
+  closeEditAttendanceModal();
+  await loadAdmin();
+}
+
+async function deleteAttendanceRecord(){
+  const id = editAttendanceId.value;
+  if(!id) return alert("Data absen tidak ditemukan");
+  const oldData = allAttendance.find(x=>x.id===id) || {};
+  const ok1 = confirm(`Jadikan ${oldData.employee_name || "karyawan"} BELUM ABSEN pada tanggal ${oldData.date || "ini"}?\n\nData absen masuk, pulang, foto, lokasi, izin keluar, dan lembur pada baris ini akan dihapus.`);
+  if(!ok1) return;
+  const ok2 = confirm("Konfirmasi terakhir: hapus 1 data absen ini dari database?");
+  if(!ok2) return;
+
+  const {error} = await db.from("attendances").delete().eq("id", id);
+  if(error){
+    console.error("DELETE ATTENDANCE RECORD ERROR:", error);
+    return alert("Gagal hapus data absen. Cek RLS/policy Supabase.");
+  }
+
+  alert("Data absen berhasil dihapus. Status karyawan menjadi belum absen untuk tanggal tersebut.");
   closeEditAttendanceModal();
   await loadAdmin();
 }
@@ -1565,7 +1663,7 @@ function buildPDF(){
   const doc=new jsPDF("landscape");
   const start=filterStart?.value || "Semua";
   const end=filterEnd?.value || "Semua";
-  const branch=filterBranch?.value || "Semua Cabang / Gudang";
+  const branch=getSelectedBranchText();
   const empText=filterEmployee?.value==="all" ? "Semua Karyawan" : (filterEmployee.options[filterEmployee.selectedIndex]?.text || "-");
   const statusText=filterStatus?.value==="all" ? "Semua Status" : (filterStatus.value==="hadir" ? "Hadir" : "Tidak Hadir");
   const punctualityText=filterPunctuality?.value==="all" ? "Semua Waktu" : (filterPunctuality.value==="early"?"Lebih Awal":filterPunctuality.value==="late"?"Terlambat":"Tepat Waktu");
