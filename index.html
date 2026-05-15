@@ -185,6 +185,25 @@ input,select{width:100%}
         <div class="card stat"><p>Pulang Lebih Awal Hari Ini</p><h1 id="totalEarlyLeaveToday">0</h1></div>
         <div class="card stat"><p>Total Data Absen</p><h1 id="totalAbs">0</h1></div>
       </div>
+
+      <div class="card scroll">
+        <h2>⚠ Pengingat Belum Absen Hari Ini</h2>
+        <p class="muted">Nama muncul otomatis setelah melewati batas telat cabang masing-masing. WIB/WITA mengikuti setting Jam Kerja Cabang.</p>
+        <table>
+          <thead><tr><th>Nama</th><th>Cabang/Gudang</th><th>Batas Telat</th><th>Zona</th><th>Jam Cabang</th><th>Status</th></tr></thead>
+          <tbody id="missingTodayTable"></tbody>
+        </table>
+      </div>
+
+      <div class="card scroll">
+        <h2>❌ Notifikasi Tidak Hadir Hari Ini</h2>
+        <p class="muted">Daftar karyawan yang sudah mengisi Absen Tidak Hadir hari ini beserta alasannya.</p>
+        <table>
+          <thead><tr><th>Nama</th><th>Cabang/Gudang</th><th>Waktu</th><th>Alasan / Keterangan</th></tr></thead>
+          <tbody id="absentTodayTable"></tbody>
+        </table>
+      </div>
+
       <div class="card scroll">
         <h2>Daftar Terlambat Hari Ini</h2>
         <p class="muted">Kalau ada karyawan absen lewat batas jam cabang, namanya langsung muncul di sini.</p>
@@ -531,6 +550,61 @@ function getWorkSetting(branch){
 function getTimezoneLabel(tz){
   return tz === "Asia/Makassar" ? "WITA" : "WIB";
 }
+function getLocalTimeByTimezone(timezone){
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone || "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).format(new Date());
+}
+function renderDashboardNotifications(){
+  const todayText = today();
+  const activeEmployees = allEmployees.filter(e => e.is_active !== false);
+
+  const missing = activeEmployees.filter(e => {
+    const branch = (e.branch || "").trim();
+    const already = allAttendance.find(a =>
+      a.employee_id === e.id &&
+      a.date === todayText &&
+      ((a.status || "hadir") === "tidak_hadir" || a.check_in)
+    );
+    if(already) return false;
+
+    const st = getWorkSetting(branch);
+    const nowMinutes = timeToMinutes(getLocalTimeByTimezone(st.timezone));
+    const lateMinutes = timeToMinutes(st.late_time || "08:00");
+    return nowMinutes !== null && lateMinutes !== null && nowMinutes > lateMinutes;
+  });
+
+  if(document.getElementById("missingTodayTable")){
+    missingTodayTable.innerHTML = missing.length ? missing.map(e => {
+      const st = getWorkSetting(e.branch);
+      const tz = st.timezone || "Asia/Jakarta";
+      return `<tr>
+        <td><span class="badge no">⚠ ${safe(e.name)}</span></td>
+        <td>${safe(e.branch)}</td>
+        <td>${safe(st.late_time || "08:00")}</td>
+        <td><span class="badge info">${getTimezoneLabel(tz)}</span><br><span class="muted">${tz}</span></td>
+        <td>${getLocalTimeByTimezone(tz)} ${getTimezoneLabel(tz)}</td>
+        <td><span class="badge no">Belum Absen</span></td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="6" class="muted">Belum ada karyawan yang melewati batas telat tanpa absen.</td></tr>`;
+  }
+
+  const absentToday = allAttendance.filter(a => a.date === todayText && a.status === "tidak_hadir");
+  if(document.getElementById("absentTodayTable")){
+    absentTodayTable.innerHTML = absentToday.length ? absentToday.map(a => `
+      <tr>
+        <td><span class="badge no">${safe(a.employee_name)}</span></td>
+        <td>${safe(a.branch)}</td>
+        <td>${safe(a.absent_time)}</td>
+        <td>${safe(a.absent_note)}</td>
+      </tr>
+    `).join("") : `<tr><td colspan="4" class="muted">Belum ada karyawan yang mengisi Tidak Hadir hari ini.</td></tr>`;
+  }
+}
 function calculatePunctuality(branch, timeText){
   const setting = getWorkSetting(branch);
   const masuk = timeToMinutes(timeText);
@@ -648,6 +722,7 @@ async function loadAdmin(){
   if(document.getElementById("totalEarlyLeaveToday")) totalEarlyLeaveToday.innerText=allAttendance.filter(a=>a.date===today() && a.checkout_status==="early_leave").length;
   totalAbs.innerText=allAttendance.length;
   lateTodayTable.innerHTML=lateToday.length?lateToday.map(a=>`<tr><td>${safe(a.employee_name)}</td><td>${safe(a.branch)}</td><td>${safe(a.check_in)}</td><td>${safe(a.punctuality_label || ("Terlambat "+(a.punctuality_minutes||0)+" menit"))}</td></tr>`).join(""):`<tr><td colspan="4" class="muted">Belum ada karyawan terlambat hari ini.</td></tr>`;
+  renderDashboardNotifications();
 
   renderEmployees();
   renderFilterBranches();
@@ -1864,6 +1939,12 @@ function closePDFPreview(){
   pdfPreviewModal.classList.add("hidden");
   pdfPreviewFrame.src="";
 }
+
+setInterval(() => {
+  if(currentUser && currentUser.role === "admin" && document.getElementById("missingTodayTable")){
+    renderDashboardNotifications();
+  }
+}, 60000);
 </script>
 </body>
 </html>
