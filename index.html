@@ -503,13 +503,34 @@ async function runLocked(message,fn){
   }
 }
 
-function today(){return new Date().toISOString().slice(0,10)}
-function nowTime(){
-  const d = new Date();
-  const h = String(d.getHours()).padStart(2,"0");
-  const m = String(d.getMinutes()).padStart(2,"0");
-  const sec = String(d.getSeconds()).padStart(2,"0");
-  return `${h}:${m}:${sec}`;
+function getLocalDateByTimezone(timezone){
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone || "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+  const y = parts.find(p => p.type === "year").value;
+  const m = parts.find(p => p.type === "month").value;
+  const d = parts.find(p => p.type === "day").value;
+  return `${y}-${m}-${d}`;
+}
+function today(timezone){
+  return getLocalDateByTimezone(timezone || "Asia/Jakarta");
+}
+function nowTime(timezone){
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone || "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).format(new Date());
+}
+function getCurrentUserTimezone(){
+  const branch = currentUser ? (currentUser.branch || "") : "";
+  const st = getWorkSetting(branch);
+  return st.timezone || (branch.toUpperCase().includes("KALSEL") ? "Asia/Makassar" : "Asia/Jakarta");
 }
 function safe(v){return (v===null||v===undefined||v==="")?"-":v}
 function statusBadge(status){
@@ -560,11 +581,13 @@ function getLocalTimeByTimezone(timezone){
   }).format(new Date());
 }
 function renderDashboardNotifications(){
-  const todayText = today();
   const activeEmployees = allEmployees.filter(e => e.is_active !== false);
 
   const missing = activeEmployees.filter(e => {
     const branch = (e.branch || "").trim();
+    const st = getWorkSetting(branch);
+    const tz = st.timezone || "Asia/Jakarta";
+    const todayText = today(tz);
     const already = allAttendance.find(a =>
       a.employee_id === e.id &&
       a.date === todayText &&
@@ -572,8 +595,7 @@ function renderDashboardNotifications(){
     );
     if(already) return false;
 
-    const st = getWorkSetting(branch);
-    const nowMinutes = timeToMinutes(getLocalTimeByTimezone(st.timezone));
+    const nowMinutes = timeToMinutes(getLocalTimeByTimezone(tz));
     const lateMinutes = timeToMinutes(st.late_time || "08:00");
     return nowMinutes !== null && lateMinutes !== null && nowMinutes > lateMinutes;
   });
@@ -593,7 +615,11 @@ function renderDashboardNotifications(){
     }).join("") : `<tr><td colspan="6" class="muted">Belum ada karyawan yang melewati batas telat tanpa absen.</td></tr>`;
   }
 
-  const absentToday = allAttendance.filter(a => a.date === todayText && a.status === "tidak_hadir");
+  const absentToday = allAttendance.filter(a => {
+    const st = getWorkSetting(a.branch || "");
+    const tz = st.timezone || "Asia/Jakarta";
+    return a.date === today(tz) && a.status === "tidak_hadir";
+  });
   if(document.getElementById("absentTodayTable")){
     absentTodayTable.innerHTML = absentToday.length ? absentToday.map(a => `
       <tr>
@@ -1174,7 +1200,7 @@ async function deleteAttendanceRecord(){
 }
 
 function renderTodayAttendance(){
-  const a=myAttendance.find(x=>x.date===today());
+  const a=myAttendance.find(x=>x.date===today(getCurrentUserTimezone()));
   if(!a){
     todayAttendanceBox.innerHTML=`<div class="today-item"><b>Status</b>Belum absen hari ini</div>`;
     return;
@@ -1330,7 +1356,7 @@ async function captureAndUploadPhoto(type){
   canvas.height=video.videoHeight||240;
   canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
   const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.8));
-  const fileName=`${currentUser.id}/${today()}-${type}-${Date.now()}.jpg`;
+  const fileName=`${currentUser.id}/${today(getCurrentUserTimezone())}-${type}-${Date.now()}.jpg`;
   const {error}=await db.storage.from("attendance-photos").upload(fileName,blob,{contentType:"image/jpeg",upsert:true});
   if(error){console.error(error);alert("Gagal upload foto");return null}
   const {data}=db.storage.from("attendance-photos").getPublicUrl(fileName);
@@ -1346,12 +1372,12 @@ async function checkIn(){
     setScanStatus("Wajah cocok. Upload foto dan simpan absen...","busy");
     const photoUrl=await captureAndUploadPhoto("masuk");
     if(!photoUrl)return;
-    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today(getCurrentUserTimezone())).maybeSingle();
     if(exist)return alert("Kamu sudah punya data absen hari ini");
-    const jamMasuk=nowTime();
+    const jamMasuk=nowTime(getCurrentUserTimezone());
     const p=calculatePunctuality(currentUser.branch,jamMasuk);
     const {error}=await db.from("attendances").insert({
-      employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:"hadir",
+      employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(getCurrentUserTimezone()),status:"hadir",
       check_in:jamMasuk,latitude:loc.lat,longitude:loc.lng,check_in_photo:photoUrl,face_verified:true,
       punctuality_status:p.status,punctuality_minutes:p.minutes,punctuality_label:p.label
     });
@@ -1370,10 +1396,10 @@ async function checkOut(){
     setScanStatus("Wajah cocok. Upload foto dan simpan absen pulang...","busy");
     const photoUrl=await captureAndUploadPhoto("pulang");
     if(!photoUrl)return;
-    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today(getCurrentUserTimezone())).maybeSingle();
     if(!exist)return alert("Belum ada absen masuk hari ini");
     if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
-    const jamPulang=nowTime();
+    const jamPulang=nowTime(getCurrentUserTimezone());
     const c=calculateCheckout(currentUser.branch,jamPulang);
     const {error}=await db.from("attendances").update({
       check_out:jamPulang,check_out_photo:photoUrl,latitude:loc.lat,longitude:loc.lng,
@@ -1391,13 +1417,13 @@ async function breakOut(){
     if(!loc)return;
     const ok=await verifyFace();
     if(!ok)return alert("Wajah tidak cocok");
-    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today(getCurrentUserTimezone())).maybeSingle();
     if(!exist)return alert("Absen masuk dulu sebelum izin keluar");
     if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
     if(exist.break_out && !exist.break_in)return alert("Kamu sedang izin keluar. Klik Masuk Kembali dulu.");
     if(exist.break_out && exist.break_in)return alert("Izin keluar hari ini sudah selesai. Versi ini mendukung 1 kali izin keluar per hari.");
     const b=getBreakSetting(currentUser.branch);
-    const jam=nowTime();
+    const jam=nowTime(getCurrentUserTimezone());
     const {error}=await db.from("attendances").update({
       break_out:jam,
       break_limit_minutes:b.limit,
@@ -1419,12 +1445,12 @@ async function breakIn(){
     if(!loc)return;
     const ok=await verifyFace();
     if(!ok)return alert("Wajah tidak cocok");
-    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+    const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today(getCurrentUserTimezone())).maybeSingle();
     if(!exist)return alert("Belum ada absen masuk hari ini");
     if(exist.status==="tidak_hadir")return alert("Hari ini sudah tercatat Tidak Hadir");
     if(!exist.break_out)return alert("Belum ada data izin keluar. Klik Izin Keluar dulu.");
     if(exist.break_in)return alert("Masuk kembali hari ini sudah tercatat");
-    const jam=nowTime();
+    const jam=nowTime(getCurrentUserTimezone());
     const c=calculateBreakReturn(currentUser.branch,exist.break_out,jam);
     const {error}=await db.from("attendances").update({
       break_in:jam,
@@ -1449,12 +1475,12 @@ async function markAbsent(){
   if(!note)return alert("Keterangan tidak hadir wajib diisi");
   const loc=await requireLocation();
   if(!loc)return;
-  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today(getCurrentUserTimezone())).maybeSingle();
   if(exist)return alert("Kamu sudah punya data absen hari ini");
   const fullNote=reason+" - "+note;
   const {error}=await db.from("attendances").insert({
-    employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(),status:"tidak_hadir",
-    absent_time:nowTime(),absent_note:fullNote,latitude:loc.lat,longitude:loc.lng,face_verified:false
+    employee_id:currentUser.id,employee_name:currentUser.name,branch:currentUser.branch,date:today(getCurrentUserTimezone()),status:"tidak_hadir",
+    absent_time:nowTime(getCurrentUserTimezone()),absent_note:fullNote,latitude:loc.lat,longitude:loc.lng,face_verified:false
   });
   if(error){console.error(error);return alert("Gagal simpan tidak hadir. Pastikan SQL tambahan sudah dijalankan.")}
   alert("Data tidak hadir berhasil disimpan");
@@ -1463,7 +1489,7 @@ async function markAbsent(){
 }
 
 async function saveOvertime(){
-  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today()).maybeSingle();
+  const {data:exist}=await db.from("attendances").select("*").eq("employee_id",currentUser.id).eq("date",today(getCurrentUserTimezone())).maybeSingle();
   if(!exist)return alert("Absen masuk dulu");
   if(exist.status==="tidak_hadir")return alert("Tidak bisa input lembur karena status hari ini Tidak Hadir");
   if(!otStart.value || !otEnd.value)return alert("Jam mulai dan jam selesai lembur wajib diisi");
