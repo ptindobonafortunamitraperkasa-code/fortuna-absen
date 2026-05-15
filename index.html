@@ -126,11 +126,11 @@ input,select{width:100%}
       <input type="hidden" id="editAttendanceId">
       <div class="form-grid">
         <input id="editAttendanceName" readonly placeholder="Nama karyawan">
-        <input id="editAttendanceDate" readonly placeholder="Tanggal">
+        <input id="editAttendanceDate" type="date" placeholder="Tanggal absen">
         <input id="editCheckIn" type="time" step="1" placeholder="Jam masuk">
         <input id="editCheckOut" type="time" step="1" placeholder="Jam pulang">
       </div>
-      <div class="modal-note">Admin bisa mengisi alasan koreksi jika diperlukan. Contoh: sinyal hilang, HP error, atau gangguan jaringan. Sistem akan hitung ulang status telat/pulang otomatis.</div>
+      <div class="modal-note">Admin bisa edit tanggal, jam masuk, dan jam pulang jika diperlukan. Contoh: salah tanggal, sinyal hilang, HP error, atau gangguan jaringan. Sistem akan hitung ulang status telat/pulang otomatis.</div>
       <textarea id="editAttendanceNote" style="width:100%;min-height:90px" placeholder="Keterangan koreksi admin (opsional)"></textarea>
     </div>
     <div class="modal-actions" style="flex-wrap:wrap">
@@ -1084,11 +1084,20 @@ async function saveAttendanceCorrection(){
   if(!id) return alert("Data absen tidak ditemukan");
 
   const oldData = allAttendance.find(x=>x.id===id) || {};
+  const newDate = editAttendanceDate.value || oldData.date || todayForBranch(oldData.branch || "");
   const newCheckIn = editCheckIn.value || null;
   const newCheckOut = editCheckOut.value || null;
   const branch = oldData.branch || "";
 
+  if(!newDate) return alert("Tanggal absen wajib diisi");
+
+  if(newDate !== oldData.date){
+    const okDate = confirm(`Tanggal absen akan diubah dari ${oldData.date || "-"} menjadi ${newDate}. Lanjutkan?`);
+    if(!okDate) return;
+  }
+
   const payload = {
+    date: newDate,
     check_in: newCheckIn,
     check_out: newCheckOut,
     edit_note: note,
@@ -1131,7 +1140,7 @@ async function saveAttendanceCorrection(){
     return alert("Gagal simpan koreksi. Pastikan SQL kolom edit absen sudah dijalankan.");
   }
 
-  alert("Koreksi jam absen berhasil disimpan dan status telat sudah dihitung ulang");
+  alert("Koreksi tanggal/jam absen berhasil disimpan dan status telat sudah dihitung ulang");
   closeEditAttendanceModal();
   await loadAdmin();
 }
